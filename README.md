@@ -24,11 +24,13 @@ npm install pyodide
    from sklearn.linear_model import Ridge
    from sklearn.datasets import load_iris
 
-   X, y = load_iris(return_X_y=True)
-   estimator = Ridge()
-   estimator.fit(X, y)
+   def main():
+       X, y = load_iris(return_X_y=True)
+       estimator = Ridge()
+       estimator.fit(X, y)
+       return estimator
    ```
-   This application can run with Pyodide, and will need to download around 21MB of packages for numpy, scipy, scikit-learn and joblib.
+   This application can run with Pyodide, and will need to download around 21MB of packages, including numpy, scipy, scikit-learn and joblib, in addition to ~7.5MB for CPython with stdlib. 
 
 2. Create the package bundle,
    ```bash
@@ -36,7 +38,21 @@ npm install pyodide
    ```   
    which would produce the following output
    ```
+   Running pyodide-bundle on app.py
+   Detected 4 Python dependencies, 
+     - 3 Pyodide built wheels
+     - 0 universal wheels from PyPi
+   with a total of 29MB.
 
+   Running application with Node.js..
+   Detected 120 opened files while loading application.
+
+   Repacking wheels:
+     - numpy.whl
+     - scipy.wl 
+   Output written to pyodide-bundle-8ac519.zip (3MB).
+   ```
+   
 
 ## Implementation
 
