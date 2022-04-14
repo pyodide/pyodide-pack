@@ -1,2 +1,3 @@
-# pyodide-bundler
-Reducing package size for Python in the browser
+# pyodide-pack
+
+Python packages bundler for the web
