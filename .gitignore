@@ -1,0 +1,5 @@
+*.pyc
+*egg-info/
+*.json
+node_modules/
+*.csv

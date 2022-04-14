@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "hoodmane-pyodide": "^0.20.0-g",
+    "pyodide": "^0.20.0"
+  }
+}
