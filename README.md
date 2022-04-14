@@ -3,9 +3,9 @@
 [![PyPi version](https://img.shields.io/pypi/v/pyodide-pack.svg)](https://pypi.org/project/pyodide-pack)
 [![GHA CI](https://github.com/rth/pyodide-pack/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/rth/pyodide-pack/actions/workflows/main.yml)
 
-Python packages bundler for the web
+Python package bundler for the web
 
-Pyodide-pack evaluates at runtime Python modules accessed in a given application running in Pyodide/Node.js, then creates a bundle with only the required Python modules. This allows to significantly reduce the download size of Python applications, provided that the code to execute is known in advance.
+Pyodide-pack detects used modules in a Python application running in the web with Pyodide, and creates a minimal bundle with them.This allows to significantly reduce the download size of Python applications, provided that the code to execute is known in advance.
 
 ## Install
 
