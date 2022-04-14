@@ -2,7 +2,7 @@
 
 [![PyPi version](https://img.shields.io/pypi/v/pyodide-pack.svg)](https://pypi.org/project/pyodide-pack)
 
-[![GH Actions](https://github.com/rth/pyodide-pack/workflows/main/badge.svg)](https://github.com/rth/pyodide-pack/actions?query=branch%3Amain+)
+[![GHA CI](https://github.com/rth/pyodide-pack/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/rth/pyodide-pack/actions/workflows/main.yml)
 
 Python packages bundler for the web
 
