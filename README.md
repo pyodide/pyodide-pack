@@ -34,7 +34,7 @@ npm install pyodide
 
 2. Create the package bundle,
    ```bash
-   pyodide-bundle app.py
+   pyodide-pack app.py
    ```   
    which would produce the following output
    ```

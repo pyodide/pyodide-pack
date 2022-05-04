@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "hoodmane-pyodide": "^0.20.0-g",
-    "pyodide": "^0.20.0"
+    "prettier": "^2.6.2",
+    "pyodide": "^0.20.1-alpha.2"
   }
 }
