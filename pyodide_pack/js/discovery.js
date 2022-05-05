@@ -7,8 +7,9 @@ async function main() {
   let file_list = [];
   const open_orig = pyodide._module.FS.open;
   pyodide._module.FS.open = function (path, flags, mode, fd_start, fd_end) {
-    // readonly flag is even https://github.com/emscripten-core/emscripten/blob/e8f25f84933a7973ad1a4e32084a8bf169d67d35/tests/fs/test_trackingdelegate.c#L18
-    // only keep files in read mode
+    // Read-only flag is even
+    // https://github.com/emscripten-core/emscripten/blob/e8f25f84933a7973ad1a4e32084a8bf169d67d35/tests/fs/test_trackingdelegate.c#L18
+    // Here we only keep files in read mode.
     if (flags % 2 == 0) {
       file_list.push(path);
     }
