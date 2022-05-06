@@ -1,27 +1,27 @@
-from pathlib import Path
-import tempfile
-from time import perf_counter
 import os
-import contextlib
-import zipfile
 import tarfile
-
-import typer
-import jinja2
-from rich.console import Console
+import tempfile
+import zipfile
+from pathlib import Path
 from subprocess import call
+from time import perf_counter
+
+import jinja2
+import typer
+from rich.console import Console
 
 app = typer.Typer()
 
 ROOT_DIR = Path(__file__).parents[1]
 
+
 class ArchiveFile:
     def __init__(self, file_path: Path):
         self.file_path = file_path
-        if file_path.suffix in ['.whl', '.zip']:
+        if file_path.suffix in [".whl", ".zip"]:
             self.opener = zipfile.ZipFile(file_path)
-        elif file_path.suffix in ['.tar']:
-            self.opener = tarfile.TarFile(file_path)
+        elif file_path.suffix in [".tar"]:
+            self.opener = tarfile.TarFile(file_path)  # type: ignore
         else:
             raise NotImplementedError
 
@@ -44,11 +44,8 @@ class ArchiveFile:
             raise NotImplementedError
 
 
-
-
-
 @app.command()
-def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r")):
+def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r")):  # type: ignore
     console = Console()
     console.print(f"Running [bold]pyodide-pack[/bold] on [bold]{example_path}[/bold]")
     js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "discovery.js"
@@ -76,10 +73,10 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
 
         used_fs_paths = fs_output_path.read_text().splitlines()
         used_fs_paths = list(
-            set([path for path in used_fs_paths if "__pycache__" not in path])
+            {path for path in used_fs_paths if "__pycache__" not in path}
         )
         console.print(
-            f"\nIn total [bold]{len(used_fs_paths)}[/bold] file paths were opened."
+            f"\n In total [bold]{len(used_fs_paths)}[/bold] file paths were opened."
         )
 
     package_dir = ROOT_DIR / "node_modules" / "pyodide"
@@ -102,8 +99,10 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
     )
 
     console.print("[bold]Packing:[/bold]")
-    out_bundle_path = Path('./pyodide-package-bundle.zip')
-    with zipfile.ZipFile(out_bundle_path, 'w', compression=zipfile.ZIP_DEFLATED) as fh_out: 
+    out_bundle_path = Path("./pyodide-package-bundle.zip")
+    with zipfile.ZipFile(
+        out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
+    ) as fh_out:
         for idx, input_archive in enumerate(all_package_files):
             console.print(
                 f" - [{idx+1}/{len(all_package_files)}] {input_archive} ({(package_dir / input_archive).stat().st_size / 1e6:.2f} MB): ",
@@ -118,27 +117,31 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
 
                 n_included = 0
                 for in_file_name in in_file_names:
-                    out_file_names = [el for el in used_fs_paths if el.endswith(in_file_name)]
-                    if len(out_file_names) or in_file_name.endswith('.so'):
+                    out_file_names = [
+                        el for el in used_fs_paths if el.endswith(in_file_name)
+                    ]
+                    if len(out_file_names) or in_file_name.endswith(".so"):
                         n_included += 1
                         if len(out_file_names):
                             out_file_name = out_file_names[0]
                         else:
-                            out_file_name = str(Path('/lib/python3.10/site-packages/') / in_file_name)
+                            out_file_name = str(
+                                Path("/lib/python3.10/site-packages/") / in_file_name
+                            )
                         with fh_in.open(in_file_name) as fh:
                             stream = fh.read()
-                        with fh_out.open(out_file_name.lstrip('/'), 'w') as fh:
+                        with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
                             fh.write(stream)
                 console.print(
-                        f" {n_included} ([bold]{100*(1 - n_included/len(in_file_names)):.1f}[/bold] % compression)",
+                    f" {n_included} ([bold]{100*(1 - n_included/len(in_file_names)):.1f}[/bold] % compression)",
                     end="",
                 )
 
-
-            console.print('')
+            console.print("")
     out_bundle_size = out_bundle_path.stat().st_size
-    console.print(f"Wrote {out_bundle_path} with {out_bundle_size/ 1e6:.2f} MB "
-                    f"({100*(1 - out_bundle_size/all_package_size):.1f}% compression) \n"
+    console.print(
+        f"Wrote {out_bundle_path} with {out_bundle_size/ 1e6:.2f} MB "
+        f"({100*(1 - out_bundle_size/all_package_size):.1f}% compression) \n"
     )
 
     js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"
@@ -147,7 +150,10 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
 
         tmp_dir = Path(tmp_dir_str)
         js_template = jinja2.Template(js_template_path.read_text())
-        js_body = js_template.render(code=code, so_files=[str(el) for el in used_fs_paths if str(el).endswith('.so')])
+        js_body = js_template.render(
+            code=code,
+            so_files=[str(el) for el in used_fs_paths if str(el).endswith(".so")],
+        )
         (tmp_dir / "validate.js").write_text(js_body)
         (tmp_dir / "node_modules").symlink_to(
             ROOT_DIR / "node_modules", target_is_directory=True
@@ -159,7 +165,7 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
             f"\nDone input code execution in [bold]{perf_counter() - t0:.1f} s[/bold]"
         )
 
-    console.print(f"\nBundle generation successful.")
+    console.print("\nBundle generation successful.")
 
 
 if __name__ == "__main__":

@@ -16,9 +16,9 @@ async function main() {
     response = await pyfetch("http://0.0.0.0:8000/pyodide-package-bundle.zip")
     await response.unpack_archive(extract_dir='/')
   `)
-  
+
   for (const path of {{ so_files }}) {
-    pyodide._module.API.tests.loadDynlib(path, true); 
+    pyodide._module.API.tests.loadDynlib(path, true);
   }
 
   await pyodide.runPythonAsync(`

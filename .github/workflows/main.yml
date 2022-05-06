@@ -1,49 +1,45 @@
-name: Main CI workflow 
+name: Main CI workflow
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 permissions:
   contents: read
 
 jobs:
   test:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-    - name: Install dependencies
-      run: |
-        pip install -e .
-        pip install pytest
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pytest
 
-    - name: Test with pytest
-      run: |
-        pytest
-
+      - name: Test with pytest
+        run: |
+          pytest
 
   pre-commit:
-
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v3
-      with:
-        python-version: "3.10"
-    - name: Install dependencies
-      run: |
-        pip install pre-commit
-    - name: Run pre-commit
-      run: |
-        pre-commit run -a
-      
+      - uses: actions/checkout@v3
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: "3.10"
+      - name: Install dependencies
+        run: |
+          pip install pre-commit
+      - name: Run pre-commit
+        run: |
+          pre-commit run -a
