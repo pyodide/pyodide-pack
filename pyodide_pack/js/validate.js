@@ -18,7 +18,7 @@ async function main() {
   `)
 
   for (const path of {{ so_files }}) {
-    pyodide._module.API.tests.loadDynlib(path, true);
+    await pyodide._module.API.tests.loadDynlib(path, true);
   }
 
   await pyodide.runPythonAsync(`

@@ -39,21 +39,25 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    ```
    python -m http.server
    ```
-   (TODO: this should be automated)
+   (TODO: *this should be automated*)
 
 3. Create the package bundle,
 
    ```bash
-   python pyodide_pack/cli.py examples/pandas-ex/app.py
+   python pyodide_pack/cli.py examples/pandas-ex/app.py --include-so='*' -v
    ```
 
    which would produce the following output
+
+   TODO: *for now the .so load detection is partially broken so we include all .so.
+   This certainly means that the size reduction is smaller than it should be*
 
    ```
    Running pyodide-pack on examples/pandas-ex/app.py
 
    Note: unless otherwise specified all sizes are given for gzip compressed files to take into account CDN compression.
 
+   Loaded requirements from: examples/pandas-ex/requirements.txt
    Running the input code in Node.js to detect used modules..
 
    ...
@@ -61,21 +65,36 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    Done input code execution in 11.2 s
 
    Detected 8 dependencies with a total size of 10.54 MB  (uncompressed: 40.99 MB)
-   In total 425 files and 54 shared libraries were accessed.
 
+   In total 425 files and 54 shared libraries were accessed.
    Packing:
-    - [1/8] distutils.tar: 101 → 0 files, 0.26 → 0.00 MB (100.0 % reduction)
-    - [2/8] python_dateutil-2.8.2-py2.py3-none-any.whl: 25 → 15 files, 0.24 → 0.22 MB (9.4 % reduction)
-    - [3/8] six-1.16.0-py2.py3-none-any.whl: 6 → 1 files, 0.01 → 0.01 MB (18.5 % reduction)
-    - [4/8] pyparsing-3.0.7-py3-none-any.whl: 17 → 0 files, 0.10 → 0.00 MB (100.0 % reduction)
-    - [5/8] pytz-2022.1-py2.py3-none-any.whl: 612 → 5 files, 0.43 → 0.02 MB (96.1 % reduction)
-    - [6/8] setuptools-62.0.0-py3-none-any.whl: 213 → 0 files, 0.76 → 0.00 MB (100.0 % reduction)
-    - [7/8] numpy-1.22.3-cp310-cp310-emscripten_wasm32.whl: 418 → 94 files, 3.63 → 2.49 MB (31.4 % reduction)
-    - [8/8] pandas-1.4.2-cp310-cp310-emscripten_wasm32.whl: 469 → 283 files, 5.11 → 4.50 MB (12.0 % reduction)
-   Wrote pyodide-package-bundle.zip with 7.35 MB (30.2% compression)
+    - [1/8] distutils.tar:
+           101 → 0 files (93 → 0 .py, 0 → 0 .so), 0.26 → 0.00 MB (100.0 % reduction)
+    - [2/8] six-1.16.0-py2.py3-none-any.whl:
+           6 → 1 files (1 → 1 .py, 0 → 0 .so), 0.01 → 0.01 MB (18.5 % reduction)
+    - [3/8] python_dateutil-2.8.2-py2.py3-none-any.whl:
+           25 → 15 files (18 → 15 .py, 0 → 0 .so), 0.24 → 0.22 MB (9.4 % reduction)
+    - [4/8] pyparsing-3.0.7-py3-none-any.whl:
+           17 → 0 files (11 → 0 .py, 0 → 0 .so), 0.10 → 0.00 MB (100.0 % reduction)
+    - [5/8] pytz-2022.1-py2.py3-none-any.whl:
+           612 → 5 files (6 → 5 .py, 0 → 0 .so), 0.43 → 0.02 MB (96.1 % reduction)
+    - [6/8] setuptools-62.0.0-py3-none-any.whl:
+           213 → 0 files (203 → 0 .py, 0 → 0 .so), 0.76 → 0.00 MB (100.0 % reduction)
+    - [7/8] numpy-1.22.3-cp310-cp310-emscripten_wasm32.whl:
+           418 → 100 files (233 → 81 .py, 19 → 19 .so), 3.63 → 2.91 MB (19.9 % reduction)
+    - [8/8] pandas-1.4.2-cp310-cp310-emscripten_wasm32.whl:
+           469 → 284 files (281 → 242 .py, 42 → 42 .so), 5.11 → 4.55 MB (11.0 % reduction)
+   Wrote pyodide-package-bundle.zip with 7.82 MB (25.8% compression)
 
    Running the input code in Node.js to validate bundle..
-   Done input code execution in ?? s
+
+   warning: no blob constructor, cannot create blobs with mimetypes
+   warning: no BlobBuilder
+   Python initialization complete
+
+   Done input code execution in 8.8 s
+
+   Bundle generation successful.
    ```
 4. Load your Python web application with,
    ```
@@ -89,11 +108,11 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    `)
 
    for (const path of {{ so_files }}) {
-     pyodide._module.API.tests.loadDynlib(path, true);
+     await pyodide._module.API.tests.loadDynlib(path, true);
    }
    ```
-   (TODO: ship the list of .so files to pre-load in the zip and add a Pyodide utils
-    function to make this easier)
+   (TODO: *ship the list of .so files to pre-load in the zip and add a Pyodide utils
+    function to make this easier*)
 
 ## Implementation
 

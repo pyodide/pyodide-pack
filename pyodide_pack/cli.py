@@ -1,3 +1,4 @@
+import fnmatch
 import gzip
 import json
 import os
@@ -23,9 +24,14 @@ ROOT_DIR = Path(__file__).parents[1]
 @app.command()
 def bundle(
     example_path: Path,
-    requirement_path: Path = typer.Option(None, "-r"),
-    verbose: bool = typer.Option(False, "-v"),
-    include_all_so: bool = False,
+    requirement_path: Path = typer.Option(
+        None, "-r", help="Path to the requirements.txt file"
+    ),
+    verbose: bool = typer.Option(False, "-v", help="Increase verbosity"),
+    include_so: str = typer.Option(
+        None,
+        help='One or multiple glob patterns separated by "," of extra .so files to include',
+    ),
 ):  # type: ignore
     console = Console()
     console.print(f"Running [bold]pyodide-pack[/bold] on [bold]{example_path}[/bold]")
@@ -141,10 +147,15 @@ def bundle(
 
                 if (
                     out_file_name is None
-                    and include_all_so
                     and in_file_name.endswith(".so")
+                    and include_so is not None
+                    and any(
+                        fnmatch.fnmatch(in_file_name, pattern)
+                        for pattern in include_so.split(",")
+                    )
                 ):
                     # TODO: this is hack and should be done better
+                    stats["so_out"] += 1
                     out_file_name = os.path.join(
                         "/lib/python3.10/site-utils", in_file_name
                     )
