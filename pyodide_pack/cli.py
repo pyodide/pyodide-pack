@@ -1,6 +1,7 @@
+import gzip
 import json
-import tarfile
 import tempfile
+import textwrap
 import zipfile
 from pathlib import Path
 from subprocess import call
@@ -10,45 +11,21 @@ import jinja2
 import typer
 from rich.console import Console
 
+from pyodide_pack.archive import ArchiveFile
+
 app = typer.Typer()
 
 ROOT_DIR = Path(__file__).parents[1]
 
 
-class ArchiveFile:
-    def __init__(self, file_path: Path):
-        self.file_path = file_path
-        if file_path.suffix in [".whl", ".zip"]:
-            self.opener = zipfile.ZipFile(file_path)
-        elif file_path.suffix in [".tar"]:
-            self.opener = tarfile.TarFile(file_path)  # type: ignore
-        else:
-            raise NotImplementedError
-
-    def namelist(self):
-        if isinstance(self.opener, zipfile.ZipFile):
-            return self.opener.namelist()
-        else:
-            return self.opener.getnames()
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, type, value, traceback):
-        self.opener.close()
-
-    def read(self, name, **kwargs):
-        if isinstance(self.opener, zipfile.ZipFile):
-            with self.opener.open(name, **kwargs) as fh:
-                return fh.read()
-        else:
-            return self.opener.extractfile(name, **kwargs).read()
-
-
 @app.command()
-def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r")):  # type: ignore
+def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"), verbose: bool = typer.Option(False, "-v")):  # type: ignore
     console = Console()
     console.print(f"Running [bold]pyodide-pack[/bold] on [bold]{example_path}[/bold]")
+    console.print(
+        "\n[bold]Note:[/bold] unless otherwise specified all sizes are given "
+        "for gzip compressed files to take into account CDN compression.\n"
+    )
     js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "discovery.js"
     requirements = requirement_path.read_text().splitlines()
     code = example_path.read_text()
@@ -79,27 +56,31 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
         used_fs_paths = list(
             {path for path in used_fs_paths if "__pycache__" not in path}
         )
-        console.print(
-            f"In total [bold]{len(used_fs_paths) + len(db['find_object_calls'])}[/bold] file paths were opened."
-        )
 
     package_dir = ROOT_DIR / "node_modules" / "pyodide"
     with open(package_dir / "packages.json") as fh:
         packages_db = json.load(fh)
 
-    all_package_files = []
+    packages = {}
     for key, val in db["loaded_packages"].items():
         if val == "default channel":
-            all_package_files.append(packages_db["packages"][key]["file_name"])
+            file_name = packages_db["packages"][key]["file_name"]
         else:
             # Otherwise loaded from custom URL
-            all_package_files.append(val)
-    all_package_size_compressed = sum(
-        (package_dir / el).stat().st_size for el in all_package_files
+            file_name = val
+
+        packages[file_name] = ArchiveFile(package_dir / file_name)
+
+    packages_size = sum(el.total_size(compressed=False) for el in packages.values())
+    packages_size_gzip = sum(el.total_size(compressed=True) for el in packages.values())
+    console.print(
+        f"Detected [bold]{len(packages)}[/bold] dependencies with a "
+        f"total size of {packages_size_gzip/1e6:.2f} MB  "
+        f"(uncompressed: {packages_size/1e6:.2f} MB)\n"
     )
     console.print(
-        f"Detected [bold]{len(all_package_files)}[/bold] dependencies with a "
-        f"total size of {all_package_size_compressed/1e6:.2f} MB\n"
+        f"In total {len(used_fs_paths)} files and {len(db['find_object_calls'])} "
+        "shared libraries were accessed."
     )
 
     console.print("[bold]Packing:[/bold]")
@@ -107,46 +88,69 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
     with zipfile.ZipFile(
         out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
     ) as fh_out:
-        for idx, input_archive in enumerate(all_package_files):
-            console.print(
-                f" - [{idx+1}/{len(all_package_files)}] {input_archive} ({(package_dir / input_archive).stat().st_size / 1e6:.2f} MB): ",
-                end="",
-            )
-            with ArchiveFile(package_dir / input_archive) as fh_in:
-                in_file_names = list(set(fh_in.namelist()))
-                console.print(
-                    f" {len(in_file_names)} [red]→[/red] files",
-                    end="",
-                )
+        for idx, ar in enumerate(packages.values()):
+            console.print(f" - [{idx+1}/{len(packages)}] {ar.name}: ", end="")
+            if verbose:
+                console.print("")
+            in_file_names = list(set(ar.namelist()))
 
-                n_included = 0
-                for in_file_name in in_file_names:
-                    out_file_names = [
-                        el
-                        for el in (used_fs_paths + db["find_object_calls"])
-                        if el.endswith(in_file_name)
-                    ]
-                    if len(out_file_names):
-                        n_included += 1
-                        if len(out_file_names):
-                            out_file_name = out_file_names[0]
-                        else:
-                            out_file_name = str(
-                                Path("/lib/python3.10/site-packages/") / in_file_name
-                            )
-                        stream = fh_in.read(in_file_name)
+            stats = {
+                "py_in": 0,
+                "so_in": 0,
+                "py_out": 0,
+                "so_out": 0,
+                "fh_out": 0,
+                "size_out": 0,
+                "size_gzip_out": 0,
+            }
+            for in_file_name in in_file_names:
+                match Path(in_file_name).suffix:
+                    case ".py":
+                        stats["py_in"] += 1
+                    case ".so":
+                        stats["so_in"] += 1
+
+                out_file_name = None
+                if out_file_names := [
+                    el for el in used_fs_paths if el.endswith(in_file_name)
+                ]:
+                    out_file_name = out_file_names[0]
+                    stats["py_out"] += 1
+                elif out_file_names := [
+                    el for el in db["find_object_calls"] if el.endswith(in_file_name)
+                ]:
+                    out_file_name = out_file_names[0]
+                    stats["so_out"] += 1
+
+                if out_file_name is not None:
+                    stats["fh_out"] += 1
+                    stream = ar.read(in_file_name)
+                    if stream is not None:
+                        stats["size_out"] += len(stream)
+                        stats["size_gzip_out"] += len(gzip.compress(stream))
                         with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
                             fh.write(stream)
-                console.print(
-                    f" {n_included} ([bold]{100*(1 - n_included/len(in_file_names)):.1f}[/bold] % compression)",
-                    end="",
-                )
 
-            console.print("")
+            msg = f"{len(in_file_names)} [red]→[/red] {stats['fh_out']} files"
+
+            if verbose:
+                msg += f" ({stats['py_in']} [red]→[/red] {stats['py_out']} .py, "
+                msg += f"{stats['so_in']} [red]→[/red] {stats['so_out']} .so), "
+            else:
+                msg += ", "
+
+            msg += (
+                f"{ar.total_size(compressed=True) / 1e6:.2f} [red]→[/red] {stats['size_gzip_out']/1e6:.2f} MB "
+                f"({100*(1 - stats['size_gzip_out'] / ar.total_size(compressed=True)):.1f} % reduction)"
+            )
+            if verbose:
+                # Printing on the next line with indentation
+                msg = textwrap.indent(msg, prefix=" " * 8)
+            console.print(msg)
     out_bundle_size = out_bundle_path.stat().st_size
     console.print(
         f"Wrote {out_bundle_path} with {out_bundle_size/ 1e6:.2f} MB "
-        f"({100*(1 - out_bundle_size/all_package_size_compressed):.1f}% compression) \n"
+        f"({100*(1 - out_bundle_size/packages_size_gzip):.1f}% compression) \n"
     )
 
     js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"

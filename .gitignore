@@ -3,3 +3,4 @@
 *.json
 node_modules/
 *.csv
+*.zip
