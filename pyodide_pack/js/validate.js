@@ -6,7 +6,7 @@ async function main() {
   let fs = await import("fs");
   let fetch = await import("node-fetch");
 
-  let pyodide = await pyodide_mod.loadPyodide();
+  let pyodide = await pyodide_mod.loadPyodide({fullStdLib: false});
   globalThis.fetch = fetch.default;
   // pyodide.registerJsModule('fetch', fetch);
   // The following should work but currently it fails to use the right fetch in node.

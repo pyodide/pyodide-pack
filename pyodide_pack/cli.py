@@ -1,5 +1,7 @@
 import gzip
 import json
+import os
+import sys
 import tempfile
 import textwrap
 import zipfile
@@ -19,15 +21,30 @@ ROOT_DIR = Path(__file__).parents[1]
 
 
 @app.command()
-def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"), verbose: bool = typer.Option(False, "-v")):  # type: ignore
+def bundle(
+    example_path: Path,
+    requirement_path: Path = typer.Option(None, "-r"),
+    verbose: bool = typer.Option(False, "-v"),
+    include_all_so: bool = False,
+):  # type: ignore
     console = Console()
     console.print(f"Running [bold]pyodide-pack[/bold] on [bold]{example_path}[/bold]")
+
+    if requirement_path is None:
+        requirement_path = example_path.parent / "requirements.txt"
+        if not requirement_path.exists():
+            console.print(
+                f"Error: could not find requirements.txt in {example_path.parent}"
+            )
+            sys.exit(1)
+
     console.print(
         "\n[bold]Note:[/bold] unless otherwise specified all sizes are given "
         "for gzip compressed files to take into account CDN compression.\n"
     )
     js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "discovery.js"
     requirements = requirement_path.read_text().splitlines()
+    console.print(f"Loaded requirements from: {requirement_path}")
     code = example_path.read_text()
 
     with tempfile.TemporaryDirectory() as tmp_dir_str:
@@ -121,6 +138,16 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"),
                 ]:
                     out_file_name = out_file_names[0]
                     stats["so_out"] += 1
+
+                if (
+                    out_file_name is None
+                    and include_all_so
+                    and in_file_name.endswith(".so")
+                ):
+                    # TODO: this is hack and should be done better
+                    out_file_name = os.path.join(
+                        "/lib/python3.10/site-utils", in_file_name
+                    )
 
                 if out_file_name is not None:
                     stats["fh_out"] += 1
