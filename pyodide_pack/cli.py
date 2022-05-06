@@ -1,4 +1,4 @@
-import os
+import json
 import tarfile
 import tempfile
 import zipfile
@@ -29,7 +29,7 @@ class ArchiveFile:
         if isinstance(self.opener, zipfile.ZipFile):
             return self.opener.namelist()
         else:
-            raise NotImplementedError
+            return self.opener.getnames()
 
     def __enter__(self):
         return self
@@ -37,11 +37,12 @@ class ArchiveFile:
     def __exit__(self, type, value, traceback):
         self.opener.close()
 
-    def open(self, name, **kwargs):
+    def read(self, name, **kwargs):
         if isinstance(self.opener, zipfile.ZipFile):
-            return self.opener.open(name, **kwargs)
+            with self.opener.open(name, **kwargs) as fh:
+                return fh.read()
         else:
-            raise NotImplementedError
+            return self.opener.extractfile(name, **kwargs).read()
 
 
 @app.command()
@@ -68,34 +69,37 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
         t0 = perf_counter()
         call(["node", str(tmp_dir / "discovery.js")])
         console.print(
-            f"\nDone input code execution in [bold]{perf_counter() - t0:.1f} s[/bold]"
+            f"\nDone input code execution in [bold]{perf_counter() - t0:.1f} s[/bold]\n"
         )
 
-        used_fs_paths = fs_output_path.read_text().splitlines()
+        with open(fs_output_path) as fh:
+            db = json.load(fh)
+        used_fs_paths = db["opened_file_names"]
+
         used_fs_paths = list(
             {path for path in used_fs_paths if "__pycache__" not in path}
         )
         console.print(
-            f"\n In total [bold]{len(used_fs_paths)}[/bold] file paths were opened."
+            f"In total [bold]{len(used_fs_paths) + len(db['find_object_calls'])}[/bold] file paths were opened."
         )
 
     package_dir = ROOT_DIR / "node_modules" / "pyodide"
-    all_package_files = [
-        path
-        for path_str in os.listdir(package_dir)
-        if (path := Path(path_str)).suffix in [".whl", ".tar", ".zip"]
-    ]
-    all_package_files = [
-        el
-        for el in all_package_files
-        if str(el) not in ["distutils.tar", "pyodide_py.tar"]
-    ]
-    all_package_size = sum(
+    with open(package_dir / "packages.json") as fh:
+        packages_db = json.load(fh)
+
+    all_package_files = []
+    for key, val in db["loaded_packages"].items():
+        if val == "default channel":
+            all_package_files.append(packages_db["packages"][key]["file_name"])
+        else:
+            # Otherwise loaded from custom URL
+            all_package_files.append(val)
+    all_package_size_compressed = sum(
         (package_dir / el).stat().st_size for el in all_package_files
     )
     console.print(
         f"Detected [bold]{len(all_package_files)}[/bold] dependencies with a "
-        f"total size of {all_package_size/1e6:.2f} MB\n"
+        f"total size of {all_package_size_compressed/1e6:.2f} MB\n"
     )
 
     console.print("[bold]Packing:[/bold]")
@@ -118,9 +122,11 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
                 n_included = 0
                 for in_file_name in in_file_names:
                     out_file_names = [
-                        el for el in used_fs_paths if el.endswith(in_file_name)
+                        el
+                        for el in (used_fs_paths + db["find_object_calls"])
+                        if el.endswith(in_file_name)
                     ]
-                    if len(out_file_names) or in_file_name.endswith(".so"):
+                    if len(out_file_names):
                         n_included += 1
                         if len(out_file_names):
                             out_file_name = out_file_names[0]
@@ -128,8 +134,7 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
                             out_file_name = str(
                                 Path("/lib/python3.10/site-packages/") / in_file_name
                             )
-                        with fh_in.open(in_file_name) as fh:
-                            stream = fh.read()
+                        stream = fh_in.read(in_file_name)
                         with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
                             fh.write(stream)
                 console.print(
@@ -141,7 +146,7 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
     out_bundle_size = out_bundle_path.stat().st_size
     console.print(
         f"Wrote {out_bundle_path} with {out_bundle_size/ 1e6:.2f} MB "
-        f"({100*(1 - out_bundle_size/all_package_size):.1f}% compression) \n"
+        f"({100*(1 - out_bundle_size/all_package_size_compressed):.1f}% compression) \n"
     )
 
     js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"
