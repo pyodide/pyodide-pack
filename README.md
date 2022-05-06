@@ -33,7 +33,7 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    pd.DataFrame([10])
    ```
 
-   This application can run with Pyodide, and will need to download around 21MB of packages, including numpy, scipy, scikit-learn and joblib, in addition to ~7.5MB for CPython with stdlib.
+   This application can run with Pyodide, and will need to download around X MB of packages, including numpy, pandas in addition to ~7.5MB for CPython with stdlib.
 
 2. Create the package bundle,
 
