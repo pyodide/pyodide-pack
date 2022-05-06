@@ -112,16 +112,19 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
             with ArchiveFile(package_dir / input_archive) as fh_in:
                 in_file_names = list(set(fh_in.namelist()))
                 console.print(
-                    f" {len(in_file_names)} [red]→[/red]",
+                    f" {len(in_file_names)} [red]→[/red] files",
                     end="",
                 )
 
                 n_included = 0
                 for in_file_name in in_file_names:
                     out_file_names = [el for el in used_fs_paths if el.endswith(in_file_name)]
-                    if len(out_file_names):
+                    if len(out_file_names) or in_file_name.endswith('.so'):
                         n_included += 1
-                        out_file_name = out_file_names[0]
+                        if len(out_file_names):
+                            out_file_name = out_file_names[0]
+                        else:
+                            out_file_name = str(Path('/lib/python3.10/site-packages/') / in_file_name)
                         with fh_in.open(in_file_name) as fh:
                             stream = fh.read()
                         with fh_out.open(out_file_name.lstrip('/'), 'w') as fh:
@@ -144,7 +147,7 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
 
         tmp_dir = Path(tmp_dir_str)
         js_template = jinja2.Template(js_template_path.read_text())
-        js_body = js_template.render(code=code,)
+        js_body = js_template.render(code=code, so_files=[str(el) for el in used_fs_paths if str(el).endswith('.so')])
         (tmp_dir / "validate.js").write_text(js_body)
         (tmp_dir / "node_modules").symlink_to(
             ROOT_DIR / "node_modules", target_is_directory=True
@@ -155,6 +158,8 @@ def bundle(example_path: Path, requirement_path: Path = typer.Option(..., "-r"))
         console.print(
             f"\nDone input code execution in [bold]{perf_counter() - t0:.1f} s[/bold]"
         )
+
+    console.print(f"\nBundle generation successful.")
 
 
 if __name__ == "__main__":
