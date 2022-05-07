@@ -1,4 +1,3 @@
-exclude: (^.*patches|.*\.cgi$|^packages/micropip/src/micropip/externals|^benchmark/benchmarks$)
 default_language_version:
   python: "3.10"
 repos:
@@ -40,6 +39,8 @@ repos:
     rev: "v0.942"
     hooks:
       - id: mypy
+        exclude: examples
+
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: "v0.8.0.4"
