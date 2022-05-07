@@ -48,9 +48,6 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
 
    which would produce the following output
 
-   TODO: *for now the .so load detection is partially broken so we include all .so.
-   This certainly means that the size reduction is smaller than it should be*
-
    ```
    Running pyodide-pack on examples/pandas-ex/app.py
 

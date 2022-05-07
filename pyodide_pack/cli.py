@@ -2,20 +2,18 @@ import fnmatch
 import gzip
 import json
 import os
-import subprocess
 import sys
-import tempfile
 import textwrap
 import zipfile
 from pathlib import Path
 from time import perf_counter
 
-import jinja2
 import typer
 from rich.console import Console
 
 from pyodide_pack._utils import match_suffix
 from pyodide_pack.archive import ArchiveFile
+from pyodide_pack.runners.node import NodeRunner
 
 app = typer.Typer()
 
@@ -49,36 +47,28 @@ def bundle(
         "\n[bold]Note:[/bold] unless otherwise specified all sizes are given "
         "for gzip compressed files to take into account CDN compression.\n"
     )
-    js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "discovery.js"
     requirements = requirement_path.read_text().splitlines()
     console.print(f"Loaded requirements from: {requirement_path}")
     code = example_path.read_text()
 
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
+    js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "discovery.js"
+    js_template_kwargs = dict(
+        code=code, packages=requirements, output_path="results.json"
+    )
+    with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
 
-        tmp_dir = Path(tmp_dir_str)
-        js_template = jinja2.Template(js_template_path.read_text())
-        fs_output_path = tmp_dir / "fs_logs.txt"
-        js_body = js_template.render(
-            code=code, packages=requirements, output_path=fs_output_path
-        )
-        (tmp_dir / "discovery.js").write_text(js_body)
-        (tmp_dir / "node_modules").symlink_to(
-            ROOT_DIR / "node_modules", target_is_directory=True
-        )
         console.print("Running the input code in Node.js to detect used modules..\n")
         t0 = perf_counter()
-        subprocess.run(["node", str(tmp_dir / "discovery.js")], check=True)
+        runner.run()
         console.print(
             f"\nDone input code execution in [bold]{perf_counter() - t0:.1f} s[/bold]\n"
         )
 
-        with open(fs_output_path) as fh:
+        with open(runner.tmp_path / "results.json") as fh:
             db = json.load(fh)
-        used_fs_paths = db["opened_file_names"]
 
-        used_fs_paths = list(
-            {path for path in used_fs_paths if "__pycache__" not in path}
+        db["opened_file_names"] = list(
+            {path for path in db["opened_file_names"] if "__pycache__" not in path}
         )
 
     package_dir = ROOT_DIR / "node_modules" / "pyodide"
@@ -103,7 +93,7 @@ def bundle(
         f"(uncompressed: {packages_size/1e6:.2f} MB)\n"
     )
     console.print(
-        f"In total {len(used_fs_paths)} files and {len(db['find_object_calls'])} "
+        f"In total {len(db['opened_file_names'])} files and {len(db['find_object_calls'])} "
         "shared libraries were accessed."
     )
 
@@ -117,7 +107,7 @@ def bundle(
             console.print(f" - [{idx+1}/{len(packages)}] {ar.name}: ", end="")
             if verbose:
                 console.print("")
-            in_file_names = list(set(ar.namelist()))
+            in_file_names = ar.namelist()
 
             stats = {
                 "py_in": 0,
@@ -136,7 +126,7 @@ def bundle(
                         stats["so_in"] += 1
 
                 out_file_name = None
-                if out_file_name := match_suffix(used_fs_paths, in_file_name):
+                if out_file_name := match_suffix(db["opened_file_names"], in_file_name):
                     stats["py_out"] += 1
                 elif out_file_name := match_suffix(
                     db["find_object_calls"], in_file_name
@@ -196,22 +186,11 @@ def bundle(
     )
 
     js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"
-
-    with tempfile.TemporaryDirectory() as tmp_dir_str:
-
-        tmp_dir = Path(tmp_dir_str)
-        js_template = jinja2.Template(js_template_path.read_text())
-        js_body = js_template.render(
-            code=code,
-            so_files=[str(el) for el in used_fs_paths if str(el).endswith(".so")],
-        )
-        (tmp_dir / "validate.js").write_text(js_body)
-        (tmp_dir / "node_modules").symlink_to(
-            ROOT_DIR / "node_modules", target_is_directory=True
-        )
+    js_template_kwargs = dict(code=code)
+    with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
         console.print("Running the input code in Node.js to validate bundle..\n")
         t0 = perf_counter()
-        subprocess.run(["node", str(tmp_dir / "validate.js")], check=True)
+        runner.run()
         console.print(
             f"\nDone input code execution in [bold]{perf_counter() - t0:.1f} s[/bold]"
         )
