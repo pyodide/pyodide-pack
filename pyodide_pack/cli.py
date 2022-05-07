@@ -27,9 +27,9 @@ def bundle(
         None, "-r", help="Path to the requirements.txt file"
     ),
     verbose: bool = typer.Option(False, "-v", help="Increase verbosity"),
-    include_so: str = typer.Option(
+    include_paths: str = typer.Option(
         None,
-        help='One or multiple glob patterns separated by "," of extra .so files to include',
+        help='One or multiple glob patterns separated by "," of extra files to include',
     ),
 ):  # type: ignore
     console = Console()
@@ -135,15 +135,18 @@ def bundle(
 
                 if (
                     out_file_name is None
-                    and in_file_name.endswith(".so")
-                    and include_so is not None
+                    and include_paths is not None
                     and any(
                         fnmatch.fnmatch(in_file_name, pattern)
-                        for pattern in include_so.split(",")
+                        for pattern in include_paths.split(",")
                     )
                 ):
+                    match Path(in_file_name).suffix:
+                        case ".py":
+                            stats["py_out"] += 1
+                        case ".so":
+                            stats["so_out"] += 1
                     # TODO: this is hack and should be done better
-                    stats["so_out"] += 1
                     out_file_name = os.path.join(
                         "/lib/python3.10/site-utils", in_file_name
                     )
