@@ -2,18 +2,19 @@ import fnmatch
 import gzip
 import json
 import os
+import subprocess
 import sys
 import tempfile
 import textwrap
 import zipfile
 from pathlib import Path
-from subprocess import call
 from time import perf_counter
 
 import jinja2
 import typer
 from rich.console import Console
 
+from pyodide_pack._utils import match_suffix
 from pyodide_pack.archive import ArchiveFile
 
 app = typer.Typer()
@@ -67,7 +68,7 @@ def bundle(
         )
         console.print("Running the input code in Node.js to detect used modules..\n")
         t0 = perf_counter()
-        call(["node", str(tmp_dir / "discovery.js")])
+        subprocess.run(["node", str(tmp_dir / "discovery.js")], check=True)
         console.print(
             f"\nDone input code execution in [bold]{perf_counter() - t0:.1f} s[/bold]\n"
         )
@@ -108,6 +109,7 @@ def bundle(
 
     console.print("[bold]Packing:[/bold]")
     out_bundle_path = Path("./pyodide-package-bundle.zip")
+    out_so_libs = []
     with zipfile.ZipFile(
         out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
     ) as fh_out:
@@ -134,15 +136,11 @@ def bundle(
                         stats["so_in"] += 1
 
                 out_file_name = None
-                if out_file_names := [
-                    el for el in used_fs_paths if el.endswith(in_file_name)
-                ]:
-                    out_file_name = out_file_names[0]
+                if out_file_name := match_suffix(used_fs_paths, in_file_name):
                     stats["py_out"] += 1
-                elif out_file_names := [
-                    el for el in db["find_object_calls"] if el.endswith(in_file_name)
-                ]:
-                    out_file_name = out_file_names[0]
+                elif out_file_name := match_suffix(
+                    db["find_object_calls"], in_file_name
+                ):
                     stats["so_out"] += 1
 
                 if (
@@ -166,6 +164,8 @@ def bundle(
                     if stream is not None:
                         stats["size_out"] += len(stream)
                         stats["size_gzip_out"] += len(gzip.compress(stream))
+                        if out_file_name.endswith(".so"):
+                            out_so_libs.append(out_file_name)
                         with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
                             fh.write(stream)
 
@@ -185,10 +185,14 @@ def bundle(
                 # Printing on the next line with indentation
                 msg = textwrap.indent(msg, prefix=" " * 8)
             console.print(msg)
+        # Write the list of .so libraries to pre-load
+        with fh_out.open("bundle-so-list.txt", "w") as fh:
+            fh.write("\n".join(out_so_libs).encode("utf-8"))
+
     out_bundle_size = out_bundle_path.stat().st_size
     console.print(
         f"Wrote {out_bundle_path} with {out_bundle_size/ 1e6:.2f} MB "
-        f"({100*(1 - out_bundle_size/packages_size_gzip):.1f}% compression) \n"
+        f"({100*(1 - out_bundle_size/packages_size_gzip):.1f}% reduction) \n"
     )
 
     js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"
@@ -207,7 +211,7 @@ def bundle(
         )
         console.print("Running the input code in Node.js to validate bundle..\n")
         t0 = perf_counter()
-        call(["node", str(tmp_dir / "validate.js")])
+        subprocess.run(["node", str(tmp_dir / "validate.js")], check=True)
         console.print(
             f"\nDone input code execution in [bold]{perf_counter() - t0:.1f} s[/bold]"
         )

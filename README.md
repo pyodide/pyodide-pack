@@ -1,6 +1,5 @@
 # pyodide-pack
 
-[![PyPi version](https://img.shields.io/pypi/v/pyodide-pack.svg)](https://pypi.org/project/pyodide-pack)
 [![GHA CI](https://github.com/rth/pyodide-pack/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/rth/pyodide-pack/actions/workflows/main.yml)
 
 Python package bundler for the web
@@ -11,7 +10,7 @@ Pyodide-pack detects used modules in a Python application running in the web wit
 
 ## Install
 
-Pyodide-pack requires Python 3.9+ as well as NodeJS,
+Pyodide-pack requires Python 3.10+ as well as NodeJS,
 
 ```bash
 pip install pyodide-pack
@@ -97,17 +96,19 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    Bundle generation successful.
    ```
 4. Load your Python web application with,
-   ```
+   ```js
    let pyodide = await loadPyodide({fullStdLib: false});
 
    await pyodide.runPythonAsync(`
+     from pathlib import Path
      from pyodide.http import pyfetch
      import os
      response = await pyfetch("<your-server>/pyodide-package-bundle.zip")
      await response.unpack_archive(extract_dir='/')
+     so_paths = Path('/bundle-so-list.txt').read_text().splitlines()
    `)
 
-   for (const path of {{ so_files }}) {
+   for (const path of pyodide.globals.get('so_paths')) {
      await pyodide._module.API.tests.loadDynlib(path, true);
    }
    ```
