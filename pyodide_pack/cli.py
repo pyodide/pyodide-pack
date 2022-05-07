@@ -185,8 +185,19 @@ def bundle(
             live.refresh()
 
         # Write the list of .so libraries to pre-load
+        shared_libs = [
+            key
+            for key, pkg in packages_db["packages"].items()
+            if pkg.get("shared_library")
+        ]
         with fh_out.open("bundle-so-list.txt", "w") as fh:
-            fh.write("\n".join(out_so_libs).encode("utf-8"))
+            for path in out_so_libs:
+                if any(key in path for key in shared_libs):
+                    is_shared = 1
+                else:
+                    is_shared = 0
+
+                fh.write((path + f",{is_shared}\n").encode("utf-8"))
 
     out_bundle_size = out_bundle_path.stat().st_size
     console.print(

@@ -22,17 +22,19 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
 ## Quickstart
 
 1. Create file with the code of your Python application running in the web. As example we will take,
-   `examples/pandas-ex/app.py`
+   `examples/scikit-learn/app.py`
 
    **app.py**
 
    ```py
-   import pandas as pd
+   from sklearn.linear_model import Ridge
 
-   pd.DataFrame([10])
+   est = Ridge()
    ```
 
-   This application can run with Pyodide, and will need to download around X MB of packages, including numpy, pandas in addition to ~7.5MB for CPython with stdlib.
+   This application can run with Pyodide, and will need to download around 27
+   MB of packages, including numpy, scipy and scikit-learn in addition to
+   ~7.5MB for CPython with stdlib.
 
 2. Start an HTTP server in the current folder;
    ```
@@ -45,13 +47,15 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    ```bash
    python pyodide_pack/cli.py examples/scikit-learn/app.py  --include-paths='*lapack*so'
    ```
+   (*For now CLAPACK needs to be manually included*)
 
    which would produce the following output
 
    ```
    Running pyodide-pack on examples/scikit-learn/app.py
 
-   Note: unless otherwise specified all sizes are given for gzip compressed files to take into account CDN compression.
+   Note: unless otherwise specified all sizes are given for gzip compressed
+   files to take into account CDN compression.
 
    Loaded requirements from: examples/scikit-learn/requirements.txt
    Running the input code in Node.js to detect used modules..
@@ -100,18 +104,16 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    await pyodide.runPythonAsync(`
      from pathlib import Path
      from pyodide.http import pyfetch
-     import os
+     from pyodide_js import _module
+
      response = await pyfetch("<your-server>/pyodide-package-bundle.zip")
      await response.unpack_archive(extract_dir='/')
-     so_paths = Path('/bundle-so-list.txt').read_text().splitlines()
-   `)
 
-   for (const path of pyodide.globals.get('so_paths')) {
-     await pyodide._module.API.tests.loadDynlib(path, true);
-   }
+     for paths in Path('/bundle-so-list.txt').read_text().splitlines():
+        path, is_shared = paths.split(',')
+        await _module.API.tests.loadDynlib(path, bool(is_shared))
+   `)
    ```
-   (TODO: *ship the list of .so files to pre-load in the zip and add a Pyodide utils
-    function to make this easier*)
 
 ## Implementation
 

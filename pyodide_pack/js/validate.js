@@ -13,15 +13,16 @@ async function main() {
   await pyodide.runPythonAsync(`
     from pyodide.http import pyfetch
     from pathlib import Path
+    from pyodide_js import _module
+
     import os
     response = await pyfetch("http://0.0.0.0:8000/pyodide-package-bundle.zip")
     await response.unpack_archive(extract_dir='/')
-    so_paths = Path('/bundle-so-list.txt').read_text().splitlines()
-  `)
 
-  for (const path of pyodide.globals.get('so_paths')) {
-    await pyodide._module.API.tests.loadDynlib(path, true);
-  }
+    for paths in Path('/bundle-so-list.txt').read_text().splitlines():
+        path, is_shared = paths.split(',')
+        await _module.API.tests.loadDynlib(path, bool(is_shared))
+  `)
 
   await pyodide.runPythonAsync(`
 {{ code }}
