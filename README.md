@@ -43,44 +43,45 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
 3. Create the package bundle,
 
    ```bash
-   python pyodide_pack/cli.py examples/pandas-ex/app.py --include-so='*' -v
+   python pyodide_pack/cli.py examples/scikit-learn/app.py  --include-paths='*lapack*so'
    ```
 
    which would produce the following output
 
    ```
-   Running pyodide-pack on examples/pandas-ex/app.py
+   Running pyodide-pack on examples/scikit-learn/app.py
 
    Note: unless otherwise specified all sizes are given for gzip compressed files to take into account CDN compression.
 
-   Loaded requirements from: examples/pandas-ex/requirements.txt
+   Loaded requirements from: examples/scikit-learn/requirements.txt
    Running the input code in Node.js to detect used modules..
 
-   ...
+   [...]
 
-   Done input code execution in 11.2 s
+   Done input code execution in 26.3 s
 
-   Detected 8 dependencies with a total size of 10.54 MB  (uncompressed: 40.99 MB)
+   Detected 13 dependencies with a total size of 27.59 MB  (uncompressed: 99.53 MB)
 
-   In total 425 files and 54 shared libraries were accessed.
-   Packing:
-    - [1/8] distutils.tar:
-           101 → 0 files (93 → 0 .py, 0 → 0 .so), 0.26 → 0.00 MB (100.0 % reduction)
-    - [2/8] six-1.16.0-py2.py3-none-any.whl:
-           6 → 1 files (1 → 1 .py, 0 → 0 .so), 0.01 → 0.01 MB (18.5 % reduction)
-    - [3/8] python_dateutil-2.8.2-py2.py3-none-any.whl:
-           25 → 15 files (18 → 15 .py, 0 → 0 .so), 0.24 → 0.22 MB (9.4 % reduction)
-    - [4/8] pyparsing-3.0.7-py3-none-any.whl:
-           17 → 0 files (11 → 0 .py, 0 → 0 .so), 0.10 → 0.00 MB (100.0 % reduction)
-    - [5/8] pytz-2022.1-py2.py3-none-any.whl:
-           612 → 5 files (6 → 5 .py, 0 → 0 .so), 0.43 → 0.02 MB (96.1 % reduction)
-    - [6/8] setuptools-62.0.0-py3-none-any.whl:
-           213 → 0 files (203 → 0 .py, 0 → 0 .so), 0.76 → 0.00 MB (100.0 % reduction)
-    - [7/8] numpy-1.22.3-cp310-cp310-emscripten_wasm32.whl:
-           418 → 100 files (233 → 81 .py, 19 → 19 .so), 3.63 → 2.91 MB (19.9 % reduction)
-    - [8/8] pandas-1.4.2-cp310-cp310-emscripten_wasm32.whl:
-           469 → 284 files (281 → 242 .py, 42 → 42 .so), 5.11 → 4.55 MB (11.0 % reduction)
-   Wrote pyodide-package-bundle.zip with 7.82 MB (25.8% compression)
+   In total 634 files and 113 shared libraries were accessed.
+                                     Packing..
+   ┏━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━┓
+   ┃ No ┃ Package                        ┃ All files ┃    Size (MB) ┃ Reduction ┃
+   ┡━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━┩
+   │  1 │ distutils.tar                  │   101 → 3 │  0.26 → 0.00 │    98.2 % │
+   │  2 │ CLAPACK-3.2.1.zip              │     2 → 1 │  1.27 → 1.27 │     0.0 % │
+   │  3 │ python_dateutil-2.8.2-py2.py3… │    25 → 0 │  0.24 → 0.00 │   100.0 % │
+   │  4 │ six-1.16.0-py2.py3-none-any.w… │     6 → 0 │  0.01 → 0.00 │   100.0 % │
+   │  5 │ pytz-2022.1-py2.py3-none-any.… │   612 → 0 │  0.43 → 0.00 │   100.0 % │
+   │  6 │ setuptools-62.0.0-py3-none-an… │   213 → 0 │  0.76 → 0.00 │   100.0 % │
+   │  7 │ pyparsing-3.0.7-py3-none-any.… │    17 → 0 │  0.10 → 0.00 │   100.0 % │
+   │  8 │ joblib-1.1.0-py2.py3-none-any… │   62 → 23 │  0.18 → 0.09 │    50.3 % │
+   │  9 │ threadpoolctl-3.1.0-py3-none-… │     5 → 1 │  0.01 → 0.01 │    30.7 % │
+   │ 10 │ numpy-1.22.3-cp310-cp310-emsc… │ 418 → 101 │  3.63 → 2.92 │    19.6 % │
+   │ 11 │ pandas-1.4.2-cp310-cp310-emsc… │   469 → 0 │  5.11 → 0.00 │   100.0 % │
+   │ 12 │ scikit_learn-1.0.2-cp310-cp31… │ 357 → 103 │  4.12 → 1.34 │    67.4 % │
+   │ 13 │ scipy-1.8.0-cp310-cp310-emscr… │ 669 → 396 │ 11.47 → 7.45 │    35.0 % │
+   └────┴────────────────────────────────┴───────────┴──────────────┴───────────┘
+   Wrote pyodide-package-bundle.zip with 13.28 MB (51.9% reduction)
 
    Running the input code in Node.js to validate bundle..
 
@@ -88,7 +89,7 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    warning: no BlobBuilder
    Python initialization complete
 
-   Done input code execution in 8.8 s
+   Done input code execution in 21.8 s
 
    Bundle generation successful.
    ```

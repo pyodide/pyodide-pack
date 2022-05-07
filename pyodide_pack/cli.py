@@ -3,13 +3,14 @@ import gzip
 import json
 import os
 import sys
-import textwrap
 import zipfile
 from pathlib import Path
 from time import perf_counter
 
 import typer
 from rich.console import Console
+from rich.live import Live
+from rich.table import Table
 
 from pyodide_pack._utils import match_suffix
 from pyodide_pack.archive import ArchiveFile
@@ -97,16 +98,24 @@ def bundle(
         "shared libraries were accessed."
     )
 
-    console.print("[bold]Packing:[/bold]")
     out_bundle_path = Path("./pyodide-package-bundle.zip")
+
+    table = Table(title="Packing..")
+    table.add_column("No", justify="right")
+    table.add_column("Package", max_width=30)
+    table.add_column("All files", justify="right")
+    if verbose:
+        table.add_column(".py", justify="right")
+        table.add_column(".so", justify="right")
+    table.add_column("Size (MB)", justify="right")
+    table.add_column("Reduction", justify="right")
+
     out_so_libs = []
     with zipfile.ZipFile(
         out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
-    ) as fh_out:
+    ) as fh_out, Live(table) as live:
+
         for idx, ar in enumerate(packages.values()):
-            console.print(f" - [{idx+1}/{len(packages)}] {ar.name}: ", end="")
-            if verbose:
-                console.print("")
             in_file_names = ar.namelist()
 
             stats = {
@@ -162,22 +171,19 @@ def bundle(
                         with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
                             fh.write(stream)
 
-            msg = f"{len(in_file_names)} [red]→[/red] {stats['fh_out']} files"
-
+            msg_0 = f"{idx+1}"
+            msg_1 = ar.name
+            msg_2 = f"{len(in_file_names)} [red]→[/red] {stats['fh_out']}"
+            msg_3 = f"{stats['py_in']} [red]→[/red] {stats['py_out']}"
+            msg_4 = f"{stats['so_in']} [red]→[/red] {stats['so_out']}"
+            msg_5 = f"{ar.total_size(compressed=True) / 1e6:.2f} [red]→[/red] {stats['size_gzip_out']/1e6:.2f}"
+            msg_6 = f"{100*(1 - stats['size_gzip_out'] / ar.total_size(compressed=True)):.1f} %"
             if verbose:
-                msg += f" ({stats['py_in']} [red]→[/red] {stats['py_out']} .py, "
-                msg += f"{stats['so_in']} [red]→[/red] {stats['so_out']} .so), "
+                table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5, msg_6)
             else:
-                msg += ", "
+                table.add_row(msg_0, msg_1, msg_2, msg_5, msg_6)
+            live.refresh()
 
-            msg += (
-                f"{ar.total_size(compressed=True) / 1e6:.2f} [red]→[/red] {stats['size_gzip_out']/1e6:.2f} MB "
-                f"({100*(1 - stats['size_gzip_out'] / ar.total_size(compressed=True)):.1f} % reduction)"
-            )
-            if verbose:
-                # Printing on the next line with indentation
-                msg = textwrap.indent(msg, prefix=" " * 8)
-            console.print(msg)
         # Write the list of .so libraries to pre-load
         with fh_out.open("bundle-so-list.txt", "w") as fh:
             fh.write("\n".join(out_so_libs).encode("utf-8"))
