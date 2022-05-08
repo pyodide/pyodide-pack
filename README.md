@@ -27,9 +27,9 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    **app.py**
 
    ```py
-   from sklearn.linear_model import Ridge
+   import pandas as pd  # noqa
 
-   est = Ridge()
+   pd.DataFrame(range(10)
    ```
 
    This application can run with Pyodide, and will need to download around 27
@@ -45,56 +45,51 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
 3. Create the package bundle,
 
    ```bash
-   python pyodide_pack/cli.py examples/scikit-learn/app.py  --include-paths='*lapack*so' -v
+   python pyodide_pack/cli.py examples/pandas/app.py
    ```
-   (*For now CLAPACK needs to be manually included*)
-
    which would produce the following output
 
    ```
-   Running pyodide-pack on examples/scikit-learn/app.py
+   Running pyodide-pack on examples/pandas/app.py
 
-   Note: unless otherwise specified all sizes are given for gzip compressed
-   files to take into account CDN compression.
+   Note: unless otherwise specified all sizes are given for gzip compressed files to take into account CDN compression.
 
-   Loaded requirements from: examples/scikit-learn/requirements.txt
+   Loaded requirements from: examples/pandas/requirements.txt
    Running the input code in Node.js to detect used modules..
 
-   [...]
+   [..]
 
-   Done input code execution in 19.6 s
+   Done input code execution in 11.1 s
 
-   Detected 7 dependencies with a total size of 20.94 MB  (uncompressed: 73.86 MB)
-   In total 628 files and 113 dynamic libraries were accessed.
+   Detected 8 dependencies with a total size of 10.54 MB  (uncompressed: 40.99 MB)
+   In total 425 files and 54 dynamic libraries were accessed.
 
-                                                 Packing..
-   ┏━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━┓
-   ┃ No ┃ Package                        ┃ All files ┃      .so ┃    Size (MB) ┃ Reduction ┃
-   ┡━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━┩
-   │  1 │ CLAPACK-3.2.1.zip              │     2 → 1 │    1 → 1 │  1.27 → 1.27 │     0.0 % │
-   │  2 │ distutils.tar                  │   101 → 3 │    0 → 0 │  0.26 → 0.00 │    98.2 % │
-   │  3 │ joblib-1.1.0-py2.py3-none-any… │   62 → 23 │    0 → 0 │  0.18 → 0.09 │    50.3 % │
-   │  4 │ numpy-1.22.3-cp310-cp310-emsc… │ 418 → 101 │  19 → 14 │  3.63 → 2.92 │    19.6 % │
-   │  5 │ scikit_learn-1.0.2-cp310-cp31… │ 357 → 103 │  55 → 22 │  4.12 → 1.34 │    67.4 % │
-   │  6 │ scipy-1.8.0-cp310-cp310-emscr… │ 669 → 396 │ 107 → 77 │ 11.47 → 7.45 │    35.0 % │
-   │  7 │ threadpoolctl-3.1.0-py3-none-… │     5 → 1 │    0 → 0 │  0.01 → 0.01 │    30.7 % │
-   └────┴────────────────────────────────┴───────────┴──────────┴──────────────┴───────────┘
-   Wrote pyodide-package-bundle.zip with 13.28 MB (36.6% reduction)
+                                          Packing..
+   ┏━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━┓
+   ┃ No ┃ Package                        ┃ All files ┃ .so libs ┃   Size (MB) ┃ Reduction ┃
+   ┡━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━┩
+   │  1 │ distutils.tar                  │   101 → 0 │    0 → 0 │ 0.26 → 0.00 │   100.0 % │
+   │  2 │ numpy-1.22.3-cp310-cp310-emsc… │  418 → 94 │  19 → 13 │ 3.63 → 2.49 │    31.4 % │
+   │  3 │ pandas-1.4.2-cp310-cp310-emsc… │ 469 → 283 │  42 → 41 │ 5.11 → 4.50 │    12.0 % │
+   │  4 │ pyparsing-3.0.7-py3-none-any.… │    17 → 0 │    0 → 0 │ 0.10 → 0.00 │   100.0 % │
+   │  5 │ python_dateutil-2.8.2-py2.py3… │   25 → 15 │    0 → 0 │ 0.24 → 0.22 │     9.4 % │
+   │  6 │ pytz-2022.1-py2.py3-none-any.… │   612 → 5 │    0 → 0 │ 0.43 → 0.02 │    96.1 % │
+   │  7 │ setuptools-62.0.0-py3-none-an… │   213 → 0 │    0 → 0 │ 0.76 → 0.00 │   100.0 % │
+   │  8 │ six-1.16.0-py2.py3-none-any.w… │     6 → 1 │    0 → 0 │ 0.01 → 0.01 │    18.5 % │
+   └────┴────────────────────────────────┴───────────┴──────────┴─────────────┴───────────┘
+   Wrote pyodide-package-bundle.zip with 7.36 MB (30.2% reduction)
 
    Running the input code in Node.js to validate bundle..
 
-   warning: no blob constructor, cannot create blobs with mimetypes
-   warning: no BlobBuilder
-   Python initialization complete
            Validating and benchmarking the output bundle..
    ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┓
    ┃ Step                 ┃ Load time (s) ┃ Fraction of load time ┃
    ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━┩
-   │ loadPyodide          │          3.54 │                16.1 % │
-   │ fetch_unpack_archive │          0.55 │                 2.5 % │
-   │ load_dynamic_libs    │         15.04 │                68.4 % │
-   │ import_run_app       │          2.87 │                13.0 % │
-   │ TOTAL                │         22.00 │                 100 % │
+   │ loadPyodide          │          2.59 │                24.4 % │
+   │ fetch_unpack_archive │          0.27 │                 2.5 % │
+   │ load_dynamic_libs    │          6.21 │                58.5 % │
+   │ import_run_app       │          1.56 │                14.7 % │
+   │ TOTAL                │         10.63 │                 100 % │
    └──────────────────────┴───────────────┴───────────────────────┘
 
    Bundle validation successful.
@@ -124,6 +119,10 @@ This bundler runs your applications in a Node.js and intercepts,
  - calls to load a dynamic library
 
 Package wheels are then repacked into a single bundle with the accessed files and dynamic libraries.
+
+## Known issues
+
+See
 
 ## License
 

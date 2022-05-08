@@ -33,6 +33,7 @@ def bundle(
     ),
     include_paths: str = typer.Option(
         None,
+        "--include",
         help='One or multiple glob patterns separated by "," of extra files to include',
     ),
 ):  # type: ignore

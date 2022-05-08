@@ -1,3 +1,4 @@
-from sklearn.linear_model import Ridge  # noqa
+from sklearn.tree import DecisionTreeClassifier  # noqa
 
-est = Ridge()
+est = DecisionTreeClassifier()
+est.fit([[1], [2], [4]], [0, 1, 0])
