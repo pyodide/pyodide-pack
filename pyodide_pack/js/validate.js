@@ -26,7 +26,7 @@ async function main() {
   t0 = process.hrtime.bigint();
 
   let pp_loader = pyodide.pyimport('pyodide_pack_loader');
-  await pp_loader.load_dynamic_libs()
+  await pp_loader.setup()
 
   bench.load_dynamic_libs = Number(process.hrtime.bigint() - t0);
 

@@ -105,8 +105,7 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
      await response.unpack_archive(extract_dir='/')
    `)
 
-   let pp_loader = pyodide.pyimport('pyodide_pack_loader');
-   await pp_loader.load_dynamic_libs()
+   await pyodide.pyimport('pyodide_pack_loader').setup();
    ```
 
 ## Implementation

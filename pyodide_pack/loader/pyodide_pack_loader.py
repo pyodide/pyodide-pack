@@ -1,7 +1,7 @@
 from pathlib import Path
 
 
-async def load_dynamic_libs():
+async def setup():
     """Load dynamic libraries in the pyodide-pack bundle"""
     from pyodide_js import _module
 

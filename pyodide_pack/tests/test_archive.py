@@ -22,14 +22,14 @@ def test_archive(format_, tmp_path):
                 fh_el.write(b"test")
     assert file_path.exists()
 
-    ar = ArchiveFile(file_path)
-    assert ar.name == "test." + format_
+    ar = ArchiveFile(file_path, name="test")
+    assert ar.name == "test"
     assert ar.namelist() == ["a/b.py"]
 
     with ar as ar_context:
         assert ar_context is ar
 
-    ar = ArchiveFile(file_path)
+    ar = ArchiveFile(file_path, name="test")
     assert ar.read("a/b.py") == b"test"
 
     assert ar.total_size(compressed=False) == 4
