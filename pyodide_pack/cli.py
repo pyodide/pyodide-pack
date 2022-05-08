@@ -14,6 +14,7 @@ from rich.table import Table
 
 from pyodide_pack._utils import match_suffix
 from pyodide_pack.archive import ArchiveFile
+from pyodide_pack.dynamic_lib import DynamicLib
 from pyodide_pack.runners.node import NodeRunner
 
 app = typer.Typer()
@@ -71,31 +72,37 @@ def bundle(
         db["opened_file_names"] = list(
             {path for path in db["opened_file_names"] if "__pycache__" not in path}
         )
+        db["dynamic_libs_map"] = {
+            path: DynamicLib(path, load_order=idx)
+            for idx, path in enumerate(db["find_object_calls"])
+            if path.endswith(".so")
+        }
 
     package_dir = ROOT_DIR / "node_modules" / "pyodide"
     with open(package_dir / "packages.json") as fh:
-        packages_db = json.load(fh)
+        packages_json = json.load(fh)
 
-    packages = {}
+    packages: dict[str, ArchiveFile] = {}
     for key, val in db["loaded_packages"].items():
         if val == "default channel":
-            file_name = packages_db["packages"][key]["file_name"]
+            file_name = packages_json["packages"][key]["file_name"]
         else:
             # Otherwise loaded from custom URL
+            # TODO: this branch needs testing
             file_name = val
 
-        packages[file_name] = ArchiveFile(package_dir / file_name)
+        packages[file_name] = ArchiveFile(package_dir / file_name, name=key)
 
     packages_size = sum(el.total_size(compressed=False) for el in packages.values())
     packages_size_gzip = sum(el.total_size(compressed=True) for el in packages.values())
     console.print(
         f"Detected [bold]{len(packages)}[/bold] dependencies with a "
         f"total size of {packages_size_gzip/1e6:.2f} MB  "
-        f"(uncompressed: {packages_size/1e6:.2f} MB)\n"
+        f"(uncompressed: {packages_size/1e6:.2f} MB)"
     )
     console.print(
         f"In total {len(db['opened_file_names'])} files and {len(db['find_object_calls'])} "
-        "shared libraries were accessed."
+        "shared libraries were accessed.\n"
     )
 
     out_bundle_path = Path("./pyodide-package-bundle.zip")
@@ -110,13 +117,14 @@ def bundle(
     table.add_column("Size (MB)", justify="right")
     table.add_column("Reduction", justify="right")
 
-    out_so_libs = []
+    dynamic_libs = []
     with zipfile.ZipFile(
         out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
     ) as fh_out, Live(table) as live:
 
-        for idx, ar in enumerate(packages.values()):
-            in_file_names = ar.namelist()
+        for idx, ar in enumerate(sorted(packages.values(), key=lambda x: x.name)):
+            # Sort keys for reproducibility
+            in_file_names = sorted(ar.namelist())
 
             stats = {
                 "py_in": 0,
@@ -138,9 +146,17 @@ def bundle(
                 if out_file_name := match_suffix(db["opened_file_names"], in_file_name):
                     stats["py_out"] += 1
                 elif out_file_name := match_suffix(
-                    db["find_object_calls"], in_file_name
+                    list(db["dynamic_libs_map"].keys()), in_file_name
                 ):
                     stats["so_out"] += 1
+                    # Get the dynamic library path while preserving order
+                    # also determine if it's a shared library or not from
+                    # the given package
+                    dll = db["dynamic_libs_map"][out_file_name]
+                    dll.shared = packages_json["packages"][ar.name].get(
+                        "sharedlibrary", False
+                    )
+                    dynamic_libs.append(dll)
 
                 if (
                     out_file_name is None
@@ -150,15 +166,21 @@ def bundle(
                         for pattern in include_paths.split(",")
                     )
                 ):
+                    # TODO: this is hack and should be done better
+                    out_file_name = os.path.join(
+                        "/lib/python3.10/site-utils", in_file_name
+                    )
                     match Path(in_file_name).suffix:
                         case ".py":
                             stats["py_out"] += 1
                         case ".so":
                             stats["so_out"] += 1
-                    # TODO: this is hack and should be done better
-                    out_file_name = os.path.join(
-                        "/lib/python3.10/site-utils", in_file_name
-                    )
+                            # Manually included dynamic libraries are going to be loaded first
+                            dll = DynamicLib(out_file_name, load_order=-1000)
+                            dll.shared = packages_json["packages"][ar.name].get(
+                                "sharedlibrary", False
+                            )
+                            dynamic_libs.append(dll)
 
                 if out_file_name is not None:
                     stats["fh_out"] += 1
@@ -166,13 +188,13 @@ def bundle(
                     if stream is not None:
                         stats["size_out"] += len(stream)
                         stats["size_gzip_out"] += len(gzip.compress(stream))
-                        if out_file_name.endswith(".so"):
-                            out_so_libs.append(out_file_name)
+                        # File paths starting with / fails to get correctly extracted
+                        # in extract_archive in Pyodide
                         with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
                             fh.write(stream)
 
             msg_0 = f"{idx+1}"
-            msg_1 = ar.name
+            msg_1 = ar.file_path.name
             msg_2 = f"{len(in_file_names)} [red]→[/red] {stats['fh_out']}"
             msg_3 = f"{stats['py_in']} [red]→[/red] {stats['py_out']}"
             msg_4 = f"{stats['so_in']} [red]→[/red] {stats['so_out']}"
@@ -185,19 +207,9 @@ def bundle(
             live.refresh()
 
         # Write the list of .so libraries to pre-load
-        shared_libs = [
-            key
-            for key, pkg in packages_db["packages"].items()
-            if pkg.get("shared_library")
-        ]
         with fh_out.open("bundle-so-list.txt", "w") as fh:
-            for path in out_so_libs:
-                if any(key in path for key in shared_libs):
-                    is_shared = 1
-                else:
-                    is_shared = 0
-
-                fh.write((path + f",{is_shared}\n").encode("utf-8"))
+            for so in sorted(dynamic_libs):
+                fh.write(f"{so.path},{so.shared}\n".encode())
 
     out_bundle_size = out_bundle_path.stat().st_size
     console.print(

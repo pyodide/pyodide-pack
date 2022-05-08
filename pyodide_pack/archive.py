@@ -12,9 +12,12 @@ class ArchiveFile:
     The archive is assumed to be immutable.
     """
 
-    def __init__(self, file_path: Path):
+    def __init__(self, file_path: Path, name: str | None):
         self.file_path = file_path
-        self.name = file_path.name
+        if name is not None:
+            self.name = name
+        else:
+            self.name = file_path.name
         if file_path.suffix in [".whl", ".zip"]:
             self.opener = zipfile.ZipFile(file_path)
         elif file_path.suffix in [".tar"]:

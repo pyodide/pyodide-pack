@@ -13,6 +13,10 @@ norecursedirs = [
    "node_modules",
    "examples"
 ]
+doctest_optionflags = [
+  "NORMALIZE_WHITESPACE",
+  "ELLIPSIS",
+]
 addopts = [
    "--doctest-modules",
 ]
