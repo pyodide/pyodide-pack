@@ -218,16 +218,29 @@ def bundle(
     )
 
     js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"
-    js_template_kwargs = dict(code=code)
+    js_template_kwargs = dict(code=code, output_path="results.json")
     with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
         console.print("Running the input code in Node.js to validate bundle..\n")
         t0 = perf_counter()
         runner.run()
-        console.print(
-            f"\nDone input code execution in [bold]{perf_counter() - t0:.1f} s[/bold]"
-        )
+        with open(runner.tmp_path / "results.json") as fh:
+            benchmarks = json.load(fh)
 
-    console.print("\nBundle generation successful.")
+    table = Table(title="Validating and benchmarking the output bundle..")
+    table.add_column("Step", justify="left")
+    table.add_column("Load time (s)", justify="right")
+    table.add_column("Fraction of load time", justify="right")
+    total_run_time = sum(benchmarks.values())
+    for key, val in benchmarks.items():
+        table.add_row(key, f"{val/1e9:.2f}", f"{100*val/total_run_time:.1f} %")
+    table.add_row(
+        "[bold]TOTAL[/bold]",
+        f"[bold]{total_run_time/1e9:.2f}[/bold]",
+        "[bold]100 %[/bold]",
+    )
+    console.print(table)
+
+    console.print("\nBundle validation successful.")
 
 
 if __name__ == "__main__":
