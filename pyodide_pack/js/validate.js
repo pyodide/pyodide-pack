@@ -25,14 +25,8 @@ async function main() {
 
   t0 = process.hrtime.bigint();
 
-  await pyodide.runPythonAsync(`
-    from pyodide_js import _module
-    from pathlib import Path
-
-    for paths in Path('/bundle-so-list.txt').read_text().splitlines():
-        path, is_shared = paths.split(',')
-        await _module.API.tests.loadDynlib(path, bool(is_shared))
-  `);
+  let pp_loader = pyodide.pyimport('pyodide_pack_loader');
+  await pp_loader.load_dynamic_libs()
 
   bench.load_dynamic_libs = Number(process.hrtime.bigint() - t0);
 

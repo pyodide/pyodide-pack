@@ -99,17 +99,14 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    let pyodide = await loadPyodide({fullStdLib: false});
 
    await pyodide.runPythonAsync(`
-     from pathlib import Path
      from pyodide.http import pyfetch
-     from pyodide_js import _module
 
      response = await pyfetch("<your-server>/pyodide-package-bundle.zip")
      await response.unpack_archive(extract_dir='/')
-
-     for paths in Path('/bundle-so-list.txt').read_text().splitlines():
-        path, is_shared = paths.split(',')
-        await _module.API.tests.loadDynlib(path, bool(is_shared))
    `)
+
+   let pp_loader = pyodide.pyimport('pyodide_pack_loader');
+   await pp_loader.load_dynamic_libs()
    ```
 
 ## Implementation

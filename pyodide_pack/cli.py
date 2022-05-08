@@ -207,6 +207,9 @@ def bundle(
         with fh_out.open("bundle-so-list.txt", "w") as fh:
             for so in sorted(dynamic_libs):
                 fh.write(f"{so.path},{so.shared}\n".encode())
+        with fh_out.open("home/pyodide/pyodide_pack_loader.py", "w") as fh:
+            loader_path = Path(__file__).parent / "loader" / "pyodide_pack_loader.py"
+            fh.write(loader_path.read_text().encode("utf-8"))
 
     out_bundle_size = out_bundle_path.stat().st_size
     console.print(
