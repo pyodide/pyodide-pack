@@ -28,7 +28,9 @@ def bundle(
     requirement_path: Path = typer.Option(
         None, "-r", help="Path to the requirements.txt file"
     ),
-    verbose: bool = typer.Option(False, "-v", help="Increase verbosity"),
+    verbose: bool = typer.Option(
+        False, "-v", help="Increase verbosity (currently ignored)"
+    ),
     include_paths: str = typer.Option(
         None,
         help='One or multiple glob patterns separated by "," of extra files to include',
@@ -111,9 +113,7 @@ def bundle(
     table.add_column("No", justify="right")
     table.add_column("Package", max_width=30)
     table.add_column("All files", justify="right")
-    if verbose:
-        table.add_column(".py", justify="right")
-        table.add_column(".so", justify="right")
+    table.add_column(".so libs", justify="right")
     table.add_column("Size (MB)", justify="right")
     table.add_column("Reduction", justify="right")
 
@@ -196,14 +196,10 @@ def bundle(
             msg_0 = f"{idx+1}"
             msg_1 = ar.file_path.name
             msg_2 = f"{len(in_file_names)} [red]→[/red] {stats['fh_out']}"
-            msg_3 = f"{stats['py_in']} [red]→[/red] {stats['py_out']}"
-            msg_4 = f"{stats['so_in']} [red]→[/red] {stats['so_out']}"
-            msg_5 = f"{ar.total_size(compressed=True) / 1e6:.2f} [red]→[/red] {stats['size_gzip_out']/1e6:.2f}"
-            msg_6 = f"{100*(1 - stats['size_gzip_out'] / ar.total_size(compressed=True)):.1f} %"
-            if verbose:
-                table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5, msg_6)
-            else:
-                table.add_row(msg_0, msg_1, msg_2, msg_5, msg_6)
+            msg_3 = f"{stats['so_in']} [red]→[/red] {stats['so_out']}"
+            msg_4 = f"{ar.total_size(compressed=True) / 1e6:.2f} [red]→[/red] {stats['size_gzip_out']/1e6:.2f}"
+            msg_5 = f"{100*(1 - stats['size_gzip_out'] / ar.total_size(compressed=True)):.1f} %"
+            table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5)
             live.refresh()
 
         # Write the list of .so libraries to pre-load
