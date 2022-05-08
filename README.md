@@ -45,7 +45,7 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
 3. Create the package bundle,
 
    ```bash
-   python pyodide_pack/cli.py examples/scikit-learn/app.py  --include-paths='*lapack*so'
+   python pyodide_pack/cli.py examples/scikit-learn/app.py  --include-paths='*lapack*so' -v
    ```
    (*For now CLAPACK needs to be manually included*)
 
@@ -54,48 +54,49 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    ```
    Running pyodide-pack on examples/scikit-learn/app.py
 
-   Note: unless otherwise specified all sizes are given for gzip compressed
-   files to take into account CDN compression.
+   Note: unless otherwise specified all sizes are given for gzip compressed files to take into account CDN compression.
 
    Loaded requirements from: examples/scikit-learn/requirements.txt
    Running the input code in Node.js to detect used modules..
 
    [...]
 
-   Done input code execution in 26.3 s
+   Done input code execution in 19.6 s
 
-   Detected 13 dependencies with a total size of 27.59 MB  (uncompressed: 99.53 MB)
+   Detected 7 dependencies with a total size of 20.94 MB  (uncompressed: 73.86 MB)
+   In total 628 files and 113 shared libraries were accessed.
 
-   In total 634 files and 113 shared libraries were accessed.
-                                     Packing..
-   ┏━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━┓
-   ┃ No ┃ Package                        ┃ All files ┃    Size (MB) ┃ Reduction ┃
-   ┡━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━┩
-   │  1 │ distutils.tar                  │   101 → 3 │  0.26 → 0.00 │    98.2 % │
-   │  2 │ CLAPACK-3.2.1.zip              │     2 → 1 │  1.27 → 1.27 │     0.0 % │
-   │  3 │ python_dateutil-2.8.2-py2.py3… │    25 → 0 │  0.24 → 0.00 │   100.0 % │
-   │  4 │ six-1.16.0-py2.py3-none-any.w… │     6 → 0 │  0.01 → 0.00 │   100.0 % │
-   │  5 │ pytz-2022.1-py2.py3-none-any.… │   612 → 0 │  0.43 → 0.00 │   100.0 % │
-   │  6 │ setuptools-62.0.0-py3-none-an… │   213 → 0 │  0.76 → 0.00 │   100.0 % │
-   │  7 │ pyparsing-3.0.7-py3-none-any.… │    17 → 0 │  0.10 → 0.00 │   100.0 % │
-   │  8 │ joblib-1.1.0-py2.py3-none-any… │   62 → 23 │  0.18 → 0.09 │    50.3 % │
-   │  9 │ threadpoolctl-3.1.0-py3-none-… │     5 → 1 │  0.01 → 0.01 │    30.7 % │
-   │ 10 │ numpy-1.22.3-cp310-cp310-emsc… │ 418 → 101 │  3.63 → 2.92 │    19.6 % │
-   │ 11 │ pandas-1.4.2-cp310-cp310-emsc… │   469 → 0 │  5.11 → 0.00 │   100.0 % │
-   │ 12 │ scikit_learn-1.0.2-cp310-cp31… │ 357 → 103 │  4.12 → 1.34 │    67.4 % │
-   │ 13 │ scipy-1.8.0-cp310-cp310-emscr… │ 669 → 396 │ 11.47 → 7.45 │    35.0 % │
-   └────┴────────────────────────────────┴───────────┴──────────────┴───────────┘
-   Wrote pyodide-package-bundle.zip with 13.28 MB (51.9% reduction)
+                                                 Packing..
+   ┏━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━┓
+   ┃ No ┃ Package                        ┃ All files ┃       .py ┃      .so ┃    Size (MB) ┃ Reduction ┃
+   ┡━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━┩
+   │  1 │ CLAPACK-3.2.1.zip              │     2 → 1 │     0 → 0 │    1 → 1 │  1.27 → 1.27 │     0.0 % │
+   │  2 │ distutils.tar                  │   101 → 3 │    93 → 3 │    0 → 0 │  0.26 → 0.00 │    98.2 % │
+   │  3 │ joblib-1.1.0-py2.py3-none-any… │   62 → 23 │   57 → 23 │    0 → 0 │  0.18 → 0.09 │    50.3 % │
+   │  4 │ numpy-1.22.3-cp310-cp310-emsc… │ 418 → 101 │  233 → 87 │  19 → 14 │  3.63 → 2.92 │    19.6 % │
+   │  5 │ scikit_learn-1.0.2-cp310-cp31… │ 357 → 103 │  253 → 81 │  55 → 22 │  4.12 → 1.34 │    67.4 % │
+   │  6 │ scipy-1.8.0-cp310-cp310-emscr… │ 669 → 396 │ 503 → 319 │ 107 → 77 │ 11.47 → 7.45 │    35.0 % │
+   │  7 │ threadpoolctl-3.1.0-py3-none-… │     5 → 1 │     1 → 1 │    0 → 0 │  0.01 → 0.01 │    30.7 % │
+   └────┴────────────────────────────────┴───────────┴───────────┴──────────┴──────────────┴───────────┘
+   Wrote pyodide-package-bundle.zip with 13.28 MB (36.6% reduction)
 
    Running the input code in Node.js to validate bundle..
 
    warning: no blob constructor, cannot create blobs with mimetypes
    warning: no BlobBuilder
    Python initialization complete
+           Validating and benchmarking the output bundle..
+   ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┓
+   ┃ Step                 ┃ Load time (s) ┃ Fraction of load time ┃
+   ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━┩
+   │ loadPyodide          │          3.54 │                16.1 % │
+   │ fetch_unpack_archive │          0.55 │                 2.5 % │
+   │ load_dynamic_libs    │         15.04 │                68.4 % │
+   │ import_run_app       │          2.87 │                13.0 % │
+   │ TOTAL                │         22.00 │                 100 % │
+   └──────────────────────┴───────────────┴───────────────────────┘
 
-   Done input code execution in 21.8 s
-
-   Bundle generation successful.
+   Bundle validation successful.
    ```
 4. Load your Python web application with,
    ```js
