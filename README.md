@@ -54,7 +54,8 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    ```
    Running pyodide-pack on examples/scikit-learn/app.py
 
-   Note: unless otherwise specified all sizes are given for gzip compressed files to take into account CDN compression.
+   Note: unless otherwise specified all sizes are given for gzip compressed
+   files to take into account CDN compression.
 
    Loaded requirements from: examples/scikit-learn/requirements.txt
    Running the input code in Node.js to detect used modules..
@@ -64,20 +65,20 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    Done input code execution in 19.6 s
 
    Detected 7 dependencies with a total size of 20.94 MB  (uncompressed: 73.86 MB)
-   In total 628 files and 113 shared libraries were accessed.
+   In total 628 files and 113 dynamic libraries were accessed.
 
                                                  Packing..
-   ┏━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━┓
-   ┃ No ┃ Package                        ┃ All files ┃       .py ┃      .so ┃    Size (MB) ┃ Reduction ┃
-   ┡━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━┩
-   │  1 │ CLAPACK-3.2.1.zip              │     2 → 1 │     0 → 0 │    1 → 1 │  1.27 → 1.27 │     0.0 % │
-   │  2 │ distutils.tar                  │   101 → 3 │    93 → 3 │    0 → 0 │  0.26 → 0.00 │    98.2 % │
-   │  3 │ joblib-1.1.0-py2.py3-none-any… │   62 → 23 │   57 → 23 │    0 → 0 │  0.18 → 0.09 │    50.3 % │
-   │  4 │ numpy-1.22.3-cp310-cp310-emsc… │ 418 → 101 │  233 → 87 │  19 → 14 │  3.63 → 2.92 │    19.6 % │
-   │  5 │ scikit_learn-1.0.2-cp310-cp31… │ 357 → 103 │  253 → 81 │  55 → 22 │  4.12 → 1.34 │    67.4 % │
-   │  6 │ scipy-1.8.0-cp310-cp310-emscr… │ 669 → 396 │ 503 → 319 │ 107 → 77 │ 11.47 → 7.45 │    35.0 % │
-   │  7 │ threadpoolctl-3.1.0-py3-none-… │     5 → 1 │     1 → 1 │    0 → 0 │  0.01 → 0.01 │    30.7 % │
-   └────┴────────────────────────────────┴───────────┴───────────┴──────────┴──────────────┴───────────┘
+   ┏━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━┓
+   ┃ No ┃ Package                        ┃ All files ┃      .so ┃    Size (MB) ┃ Reduction ┃
+   ┡━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━┩
+   │  1 │ CLAPACK-3.2.1.zip              │     2 → 1 │    1 → 1 │  1.27 → 1.27 │     0.0 % │
+   │  2 │ distutils.tar                  │   101 → 3 │    0 → 0 │  0.26 → 0.00 │    98.2 % │
+   │  3 │ joblib-1.1.0-py2.py3-none-any… │   62 → 23 │    0 → 0 │  0.18 → 0.09 │    50.3 % │
+   │  4 │ numpy-1.22.3-cp310-cp310-emsc… │ 418 → 101 │  19 → 14 │  3.63 → 2.92 │    19.6 % │
+   │  5 │ scikit_learn-1.0.2-cp310-cp31… │ 357 → 103 │  55 → 22 │  4.12 → 1.34 │    67.4 % │
+   │  6 │ scipy-1.8.0-cp310-cp310-emscr… │ 669 → 396 │ 107 → 77 │ 11.47 → 7.45 │    35.0 % │
+   │  7 │ threadpoolctl-3.1.0-py3-none-… │     5 → 1 │    0 → 0 │  0.01 → 0.01 │    30.7 % │
+   └────┴────────────────────────────────┴───────────┴──────────┴──────────────┴───────────┘
    Wrote pyodide-package-bundle.zip with 13.28 MB (36.6% reduction)
 
    Running the input code in Node.js to validate bundle..

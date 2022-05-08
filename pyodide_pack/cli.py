@@ -102,7 +102,7 @@ def bundle(
     )
     console.print(
         f"In total {len(db['opened_file_names'])} files and {len(db['find_object_calls'])} "
-        "shared libraries were accessed.\n"
+        "dynamic libraries were accessed.\n"
     )
 
     out_bundle_path = Path("./pyodide-package-bundle.zip")
