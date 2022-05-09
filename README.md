@@ -46,7 +46,8 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    ```
    Running pyodide-pack on examples/pandas/app.py
 
-   Note: unless otherwise specified all sizes are given for gzip compressed files to take into account CDN compression.
+   Note: unless otherwise specified all sizes are given for gzip compressed files to
+   be representative of CDN compression.
 
    Loaded requirements from: examples/pandas/requirements.txt
    Running the input code in Node.js to detect used modules..
