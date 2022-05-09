@@ -4,7 +4,7 @@
 
 Python package bundler for the web
 
-THIS IS STILL WIP AND NOT READY FOR USE
+THIS PACKAGE IS STILL VERY EXPERIMENTAL
 
 Pyodide-pack detects used modules in a Python application running in the web with Pyodide, and creates a minimal bundle with them. This allows to significantly reduce the download size of Python applications, provided that the code to execute is known in advance.
 
@@ -29,20 +29,14 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
    ```py
    import pandas as pd  # noqa
 
-   pd.DataFrame(range(10)
+   pd.DataFrame(range(10))
    ```
 
-   This application can run with Pyodide, and will need to download around 27
-   MB of packages, including numpy, scipy and scikit-learn in addition to
-   ~7.5MB for CPython with stdlib.
+   This application can run with Pyodide, and will need to download around 10.5
+   MB of packages, including numpy and pandas in addition to
+   ~7MB for CPython with stdlib.
 
-2. Start an HTTP server in the current folder;
-   ```
-   python -m http.server
-   ```
-   (TODO: *this should be automated*)
-
-3. Create the package bundle,
+2. Create the package bundle,
 
    ```bash
    python pyodide_pack/cli.py examples/pandas/app.py
@@ -94,7 +88,7 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
 
    Bundle validation successful.
    ```
-4. Load your Python web application with,
+3. Load your Python web application with,
    ```js
    let pyodide = await loadPyodide({fullStdLib: false});
 
@@ -115,10 +109,6 @@ This bundler runs your applications in a Node.js and intercepts,
  - calls to load a dynamic library
 
 Package wheels are then repacked into a single bundle with the accessed files and dynamic libraries.
-
-## Known issues
-
-See
 
 ## License
 

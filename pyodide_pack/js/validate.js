@@ -18,10 +18,15 @@ async function main() {
   await pyodide.runPythonAsync(`
     from pyodide.http import pyfetch
 
-    response = await pyfetch("http://0.0.0.0:8000/pyodide-package-bundle.zip")
+    response = await pyfetch("http://127.0.0.1:{{ port }}/pyodide-package-bundle.zip")
     await response.unpack_archive(extract_dir='/')
   `);
   bench.fetch_unpack_archive = Number(process.hrtime.bigint() - t0);
+  await pyodide.runPythonAsync(`
+    from pathlib import Path
+
+    assert Path('/home/pyodide/pyodide_pack_loader.py').exists()
+  `)
 
   t0 = process.hrtime.bigint();
 

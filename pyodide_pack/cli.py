@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
-from pyodide_pack._utils import match_suffix
+from pyodide_pack._utils import match_suffix, spawn_web_server
 from pyodide_pack.archive import ArchiveFile
 from pyodide_pack.dynamic_lib import DynamicLib
 from pyodide_pack.runners.node import NodeRunner
@@ -50,7 +50,7 @@ def bundle(
 
     console.print(
         "\n[bold]Note:[/bold] unless otherwise specified all sizes are given "
-        "for gzip compressed files to take into account CDN compression.\n"
+        "for gzip compressed files to be representative of CDN compression.\n"
     )
     requirements = requirement_path.read_text().splitlines()
     console.print(f"Loaded requirements from: {requirement_path}")
@@ -217,14 +217,16 @@ def bundle(
         f"({100*(1 - out_bundle_size/packages_size_gzip):.1f}% reduction) \n"
     )
 
-    js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"
-    js_template_kwargs = dict(code=code, output_path="results.json")
-    with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
-        console.print("Running the input code in Node.js to validate bundle..\n")
-        t0 = perf_counter()
-        runner.run()
-        with open(runner.tmp_path / "results.json") as fh:
-            benchmarks = json.load(fh)
+    # We start a webserver so that the bundle can be loaded via fetch
+    with spawn_web_server(dist_dir=".") as (_, port, server_logs):
+        js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"
+        js_template_kwargs = dict(code=code, output_path="results.json", port=port)
+        with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
+            console.print("Running the input code in Node.js to validate bundle..\n")
+            t0 = perf_counter()
+            runner.run()
+            with open(runner.tmp_path / "results.json") as fh:
+                benchmarks = json.load(fh)
 
     table = Table(title="Validating and benchmarking the output bundle..")
     table.add_column("Step", justify="left")
