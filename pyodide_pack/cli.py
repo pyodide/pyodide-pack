@@ -35,7 +35,7 @@ def main(
     ),
 ):  # type: ignore
     console = Console()
-    console.print(f"Running [bold]pyodide-pack[/bold] on [bold]{example_path}[/bold]")
+    console.print(f"Running [bold]pyodide pack[/bold] on [bold]{example_path}[/bold]")
 
     if requirement_path is None:
         requirement_path = example_path.parent / "requirements.txt"
