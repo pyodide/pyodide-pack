@@ -1,5 +1,6 @@
 # pyodide-pack
 
+[![PyPI Latest Release](https://img.shields.io/pypi/v/pyodide-pack.svg)](https://pypi.org/project/pyodide-pack/)
 [![GHA CI](https://github.com/rth/pyodide-pack/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/rth/pyodide-pack/actions/workflows/main.yml)
 
 Python package bundler for the web
