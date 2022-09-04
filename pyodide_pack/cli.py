@@ -34,6 +34,7 @@ def main(
         help='One or multiple glob patterns separated by "," of extra files to include',
     ),
 ):  # type: ignore
+    """Create a minimal bundle for a Pyodide application with the required dependencies"""
     console = Console()
     console.print(f"Running [bold]pyodide pack[/bold] on [bold]{example_path}[/bold]")
 
