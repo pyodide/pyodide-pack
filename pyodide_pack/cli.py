@@ -17,13 +17,10 @@ from pyodide_pack.archive import ArchiveFile
 from pyodide_pack.dynamic_lib import DynamicLib
 from pyodide_pack.runners.node import NodeRunner
 
-app = typer.Typer()
-
 ROOT_DIR = Path(__file__).parents[1]
 
 
-@app.command()
-def bundle(
+def main(
     example_path: Path,
     requirement_path: Path = typer.Option(
         None, "-r", help="Path to the requirements.txt file"
@@ -37,8 +34,9 @@ def bundle(
         help='One or multiple glob patterns separated by "," of extra files to include',
     ),
 ):  # type: ignore
+    """Create a minimal bundle for a Pyodide application with the required dependencies"""
     console = Console()
-    console.print(f"Running [bold]pyodide-pack[/bold] on [bold]{example_path}[/bold]")
+    console.print(f"Running [bold]pyodide pack[/bold] on [bold]{example_path}[/bold]")
 
     if requirement_path is None:
         requirement_path = example_path.parent / "requirements.txt"
@@ -246,4 +244,4 @@ def bundle(
 
 
 if __name__ == "__main__":
-    app()
+    typer.run(main)

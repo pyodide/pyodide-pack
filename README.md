@@ -40,7 +40,7 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
 2. Create the package bundle,
 
    ```bash
-   python pyodide_pack/cli.py examples/pandas/app.py
+   pyodide pack examples/pandas/app.py
    ```
    which would produce the following output
 

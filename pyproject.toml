@@ -20,3 +20,6 @@ doctest_optionflags = [
 addopts = [
    "--doctest-modules",
 ]
+testpaths = [
+   "pyodide_pack",
+]
