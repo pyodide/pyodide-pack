@@ -51,3 +51,6 @@ repos:
     rev: "v2.2.2"
     hooks:
       - id: codespell
+
+ci:
+  autoupdate_schedule: "quarterly"
