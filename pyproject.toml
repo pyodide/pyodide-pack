@@ -5,8 +5,26 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools_scm]
 
-[tool.isort]
-profile = "black"
+[tool.ruff]
+select = [
+  "E",     # pycodestyles
+  "W",     # pycodestyles
+  "F",     # pyflakes
+  "B0",    # bugbear (all B0* checks enabled by default)
+  "B904",  # bugbear (Within an except clause, raise exceptions with raise ... from err)
+  "B905",  # bugbear (zip() without an explicit strict= parameter set.)
+  "UP",    # pyupgrade
+  "I",     # isort
+  "PGH",   # pygrep-hooks
+]
+ignore = ["E402", "E501", "E731", "E741"]
+target-version = "py310"
+
+
+[tool.ruff.isort]
+known-first-party = [ ]
+known-third-party = [ ]
+
 
 [tool.pytest.ini_options]
 norecursedirs = [

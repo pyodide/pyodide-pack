@@ -14,26 +14,16 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
 
-  - repo: https://github.com/PyCQA/isort
-    rev: "5.10.1"
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: "v0.0.241"
     hooks:
-      - id: isort
-
-  - repo: https://github.com/asottile/pyupgrade
-    rev: "v3.3.1"
-    hooks:
-      - id: pyupgrade
-        args: ["--py310-plus"]
+      - id: ruff
+        args: [--fix]
 
   - repo: https://github.com/psf/black
     rev: "22.12.0"
     hooks:
       - id: black
-
-  - repo: https://github.com/pycqa/flake8
-    rev: "6.0.0"
-    hooks:
-      - id: flake8
 
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: "v0.991"
