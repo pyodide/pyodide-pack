@@ -59,7 +59,6 @@ def main(
         code=code, packages=requirements, output_path="results.json"
     )
     with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
-
         console.print("Running the input code in Node.js to detect used modules..\n")
         t0 = perf_counter()
         runner.run()
@@ -120,7 +119,6 @@ def main(
     with zipfile.ZipFile(
         out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
     ) as fh_out, Live(table) as live:
-
         for idx, ar in enumerate(sorted(packages.values(), key=lambda x: x.name)):
             # Sort keys for reproducibility
             in_file_names = sorted(ar.namelist())

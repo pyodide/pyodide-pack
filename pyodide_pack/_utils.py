@@ -83,7 +83,6 @@ def run_web_server(q, log_filepath, dist_dir):
 
 @contextmanager
 def spawn_web_server(dist_dir):
-
     tmp_dir = tempfile.mkdtemp()
     log_path = Path(tmp_dir) / "http-server.log"
     q: multiprocessing.Queue[str] = multiprocessing.Queue()

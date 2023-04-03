@@ -3,7 +3,6 @@ from pathlib import Path
 
 
 def main():
-
     WHEELS_DIR = Path("./node_modules/hoodmane-pyodide/")
     fd_to_keep = Path("opened_fd.csv").read_text().splitlines()
 
