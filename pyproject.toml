@@ -58,3 +58,19 @@ addopts = [
 testpaths = [
    "pyodide_pack",
 ]
+
+[tool.ruff]
+select = [
+  "B904",   # bugbear (Within an except clause, raise exceptions with raise ... from err)
+  "B905",   # bugbear (zip() without an explicit strict= parameter set.)
+#  "C9",     # mccabe complexity
+  "E",      # pycodestyles
+  "W",      # pycodestyles
+  "F",      # pyflakes
+  "I",      # isort
+  "PLC",    # pylint conventions
+  "PLE",    # pylint errors
+  "UP",     # pyupgrade
+]
+ignore = ["E402", "E501", "E731", "E741"]
+target-version = "py310"

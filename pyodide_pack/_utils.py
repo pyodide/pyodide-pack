@@ -62,8 +62,9 @@ def run_web_server(q, log_filepath, dist_dir):
     class Handler(http.server.SimpleHTTPRequestHandler):
         def log_message(self, format_, *args):
             print(
-                "[%s] source: %s:%s - %s"
-                % (self.log_date_time_string(), *self.client_address, format_ % args)
+                "[{}] source: {}:{} - {}".format(
+                    self.log_date_time_string(), *self.client_address, format_ % args
+                )
             )
 
         def end_headers(self):

@@ -14,41 +14,32 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
 
-  - repo: https://github.com/PyCQA/isort
-    rev: "5.12.0"
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: "v0.0.274"
     hooks:
-      - id: isort
-
-  - repo: https://github.com/asottile/pyupgrade
-    rev: "v3.3.1"
-    hooks:
-      - id: pyupgrade
-        args: ["--py310-plus"]
+      - id: ruff
+        args: [--fix]
 
   - repo: https://github.com/psf/black
     rev: "23.3.0"
     hooks:
       - id: black
 
-  - repo: https://github.com/pycqa/flake8
-    rev: "6.0.0"
-    hooks:
-      - id: flake8
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: "v1.1.1"
+    rev: "v1.4.0"
     hooks:
       - id: mypy
         exclude: examples
 
 
   - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: "v0.9.0.2"
+    rev: "v0.9.0.5"
     hooks:
       - id: shellcheck
 
   - repo: https://github.com/codespell-project/codespell
-    rev: "v2.2.4"
+    rev: "v2.2.5"
     hooks:
       - id: codespell
 
