@@ -241,5 +241,11 @@ def main(
     console.print("\nBundle validation successful.")
 
 
+if "sphinx" in sys.modules and __name__ != "__main__":
+    app = typer.Typer()
+    app.command()(main)
+    typer_click_object = typer.main.get_command(app)
+
+
 if __name__ == "__main__":
     typer.run(main)
