@@ -6,6 +6,19 @@
 pyodide-pack
 ============
 
+Python package bundler and minifier for the web
+
+Pyodide-pack aims to reduce the size and load time of Python applications running in the browser using different strategies:
+
+- Minification of the source code via AST rewrite
+- Transformation of the source code into a different format such as Python bytecode (.pyc files)
+- Dead code elimination, by removing unused Python modules (detected at runtime)
+
+Each of these approaches have different tradeoffs, and can be used separately or in combination.
+
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
+
+   module-elimination-at-runtime.md
+   cli.md
