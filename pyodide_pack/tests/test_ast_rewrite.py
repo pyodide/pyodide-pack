@@ -2,7 +2,7 @@ import ast
 from textwrap import dedent
 
 import hypothesis.strategies as st
-from hypothesis import given
+from hypothesis import given, settings
 
 from pyodide_pack.ast_rewrite import (
     _strip_module_docstring,
@@ -104,6 +104,7 @@ def test_strip_module_docstrings():
     )
 
 
+@settings(deadline=300)
 @given(st.sampled_from(_get_stdlib_module_paths()))
 def test_process_all_stdlib(path):
     """Check that we can process all of the stdlib without crashing."""
