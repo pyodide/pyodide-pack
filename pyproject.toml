@@ -26,8 +26,16 @@ content-type = "text/markdown"
 Homepage = "https://github.com/rth/pyodide-bundler"
 "Bug Tracker" = "https://github.com/rth/pyodide-bundler"
 
-[project.entry-points]
-"pyodide.cli" = {pack = "pyodide_pack.cli:main"}
+[project.entry-points."pyodide.cli"]
+
+pack = "pyodide_pack.cli:main"
+minify = "pyodide_pack.ast_rewrite:main"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "hypothesis",
+]
 
 [tool.setuptools]
 package-dir = {"" = "."}
