@@ -34,6 +34,7 @@ minify = "pyodide_pack.ast_rewrite:main"
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "pytest-cov",
     "hypothesis",
 ]
 
