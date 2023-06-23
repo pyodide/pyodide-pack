@@ -34,7 +34,7 @@ wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules
 
 For Python wheel minification via AST rewrites, run,
 ```
-pyodide minify <path_to_wheel>.whl
+pyodide minify <path_to_dir_with_py_files>
 ```
 
 

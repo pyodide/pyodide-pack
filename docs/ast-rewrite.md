@@ -10,5 +10,5 @@ In this section we apply Abstract Syntax Tree (AST) rewrites to the package sour
 
 To apply rewrites on one or multiple wheels, run,
 ```bash
-pyodide minify <path.whl>
+pyodide minify <path_to_dir_with_py_files>
 ```
