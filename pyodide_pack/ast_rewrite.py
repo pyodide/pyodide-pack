@@ -45,7 +45,10 @@ def main(
     input_dir: Path = typer.Argument(..., help="Path to the folder to compress"),
     strip_docstrings: bool = typer.Option(False, help="Strip docstrings"),
 ) -> None:
-    """Minify a folder of Python files."""
+    """Minify a folder of Python files.
+
+    Note: this API will change before the next release
+    """
     output_dirname = input_dir.name + "_stripped"
     if strip_docstrings:
         output_dirname += "_no_docstrings"

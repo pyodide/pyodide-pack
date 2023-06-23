@@ -1,4 +1,5 @@
 import ast
+from pathlib import Path
 from textwrap import dedent
 
 import hypothesis.strategies as st
@@ -114,3 +115,19 @@ def test_process_all_stdlib(path):
     tree = _strip_module_docstring(tree)
     tree = _StripDocstringsTransformer().visit(tree)
     ast.unparse(tree)
+
+
+def test_cli_minify(tmp_path):
+    import pathlib
+
+    from pyodide_pack.ast_rewrite import main
+
+    input_dir = tmp_path / "input_dir"
+    input_dir.mkdir()
+    (input_dir / "pathlib.py").write_text(Path(pathlib.__file__).read_text())
+
+    main(input_dir, strip_docstrings=False)
+    output_path = tmp_path / "input_dir_stripped.zip"
+    assert output_path.exists()
+    # There is at least a 10% size reduction, though this test and API needs to be rewritten
+    assert (input_dir / "pathlib.py").stat().st_size > 1.1 * output_path.stat().st_size
