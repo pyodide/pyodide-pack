@@ -20,5 +20,6 @@ Each of these approaches have different tradeoffs, and can be used separately or
    :maxdepth: 1
    :caption: Contents:
 
+   ast-rewrite.md
    module-elimination-at-runtime.md
    cli.md
