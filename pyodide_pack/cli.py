@@ -34,7 +34,11 @@ def main(
         help='One or multiple glob patterns separated by "," of extra files to include',
     ),
 ):  # type: ignore
-    """Create a minimal bundle for a Pyodide application with the required dependencies"""
+    """Create a minimal bundle for a Pyodide application with the required dependencies
+
+    Experimental: this is based on runtime dependency analysis and may not work for all
+    applications.
+    """
     console = Console()
     console.print(f"Running [bold]pyodide pack[/bold] on [bold]{example_path}[/bold]")
 
@@ -79,7 +83,7 @@ def main(
         }
 
     package_dir = ROOT_DIR / "node_modules" / "pyodide"
-    with open(package_dir / "packages.json") as fh:
+    with open(package_dir / "repodata.json") as fh:
         packages_json = json.load(fh)
 
     packages: dict[str, ArchiveFile] = {}
