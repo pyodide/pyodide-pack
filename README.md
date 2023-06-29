@@ -25,9 +25,7 @@ pip install pyodide-pack
 as well,
 
 ```bash
-npm install pyodide@0.20.1-alpha.2
-# A hack due to the npm package having issues
-wget https://cdn.jsdelivr.net/pyodide/v0.20.0/full/packages.json -O node_modules/pyodide/packages.json
+npm install pyodide
 ```
 
 ## Usage
@@ -38,7 +36,7 @@ pyodide minify <path_to_dir_with_py_files>
 ```
 
 
-See the documentation at [pyodide-pack.pyodide.org](https://pyodide-pack.pyodide.org).
+See the documentation at [pyodide-pack.pyodide.org](https://pyodide-pack.pyodide.org) for more details.
 
 
 ## License
