@@ -21,11 +21,10 @@ Pyodide-pack requires Python 3.10+ and can be installed via pip:
 pip install pyodide-pack
 ```
 
-(optionally) For elimation of unused modules via runtime detection, run NodeJS  needs to be installed,
-as well,
+(optionally) For elimation of unused modules via runtime detection, run NodeJS  needs to be installed together with Pyodide 0.24.0+:
 
 ```bash
-npm install pyodide
+npm install pyodide@">0.24.0"
 ```
 
 ## Usage

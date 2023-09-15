@@ -2,13 +2,13 @@ var buff;
 
 
 async function main() {
-  let pyodide_mod = await import("pyodide/pyodide.js");
+  let { loadPyodide } = require("pyodide");
   let fs = await import("fs");
   let fetch = await import("node-fetch");
   let bench = new Object();
 
   let t0 = process.hrtime.bigint();
-  let pyodide = await pyodide_mod.loadPyodide({fullStdLib: false});
+  let pyodide = await loadPyodide({fullStdLib: false});
   bench.loadPyodide = Number(process.hrtime.bigint() - t0);
 
 

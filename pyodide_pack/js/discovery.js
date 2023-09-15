@@ -1,9 +1,9 @@
 
 async function main() {
-  let pyodide_mod = await import("pyodide/pyodide.js");
+  const { loadPyodide } = require("pyodide");
   let fs = await import("fs");
 
-  let pyodide = await pyodide_mod.loadPyodide()
+  let pyodide = await loadPyodide()
   let file_list = [];
   const open_orig = pyodide._module.FS.open;
   // Monkeypatch FS.open

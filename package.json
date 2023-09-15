@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "pyodide": "^0.23.3"
+    "node-fetch": "^3.3.2",
+    "pyodide": "^0.24.0"
   }
 }
