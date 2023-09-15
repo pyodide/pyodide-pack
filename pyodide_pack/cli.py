@@ -83,7 +83,7 @@ def main(
         }
 
     package_dir = ROOT_DIR / "node_modules" / "pyodide"
-    with open(package_dir / "repodata.json") as fh:
+    with open(package_dir / "pyodide-lock.json") as fh:
         packages_json = json.load(fh)
 
     packages: dict[str, ArchiveFile] = {}
