@@ -2,6 +2,7 @@ import fnmatch
 import gzip
 import json
 import os
+import shutil
 import sys
 import zipfile
 from pathlib import Path
@@ -106,7 +107,7 @@ def main(
         packages[file_name] = ArchiveFile(package_dir / file_name, name=key)
 
     stdlib_archive = ArchiveFile(package_dir / "python_stdlib.zip", name="stdlib")
-    stdlib_striped_path = Path("python_stdlib_stripped.zip")
+    stdlib_striped_path = Path("python_stdlib_striped.zip")
 
     console.print(
         f"Using stdlib ({len(stdlib_archive.namelist())} files) with a total size "
@@ -159,18 +160,22 @@ def main(
                 if path.startswith(stdlib_prefix)
             ]
             for name in stdlib_archive.namelist():
-                if name in imported_paths:
+                # Include imported stdlib modules and all pyodide modules
+                # Some modules are used when loading the bundle (e.g. json)
+                if name in imported_paths or any(
+                    prefix in name for prefix in ["pyodide", "json"]
+                ):
                     fh_stdlib_out.writestr(name, stdlib_archive.read(name))
-        stdlib_archive_stripped = ArchiveFile(stdlib_striped_path, name="stdlib")
+        stdlib_archive_striped = ArchiveFile(stdlib_striped_path, name="stdlib")
         msg_0 = "0"
         msg_1 = "stdlib"
-        msg_2 = f"{len(stdlib_archive.namelist())} [red]→[/red] {len(stdlib_archive_stripped.namelist())}"
+        msg_2 = f"{len(stdlib_archive.namelist())} [red]→[/red] {len(stdlib_archive_striped.namelist())}"
         msg_3 = ""
         msg_4 = (
             f"{stdlib_archive.total_size(compressed=True) / 1e6:.2f} [red]→[/red] "
-            f"{stdlib_archive_stripped.total_size(compressed=True)/1e6:.2f}"
+            f"{stdlib_archive_striped.total_size(compressed=True)/1e6:.2f}"
         )
-        msg_5 = f"{100*(1 - stdlib_archive_stripped.total_size(compressed=True) / stdlib_archive.total_size(compressed=True)):.1f} %"
+        msg_5 = f"{100*(1 - stdlib_archive_striped.total_size(compressed=True) / stdlib_archive.total_size(compressed=True)):.1f} %"
         table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5)
         live.refresh()
         for idx, ar in enumerate(sorted(packages.values(), key=lambda x: x.name)):
@@ -273,6 +278,7 @@ def main(
         js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"
         js_template_kwargs = dict(code=code, output_path="results.json", port=port)
         with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
+            shutil.copy(stdlib_striped_path, runner.tmp_path / stdlib_striped_path.name)
             console.print("Running the input code in Node.js to validate bundle..\n")
             t0 = perf_counter()
             runner.run()
@@ -294,7 +300,7 @@ def main(
     console.print(table)
 
     total_final_size = (
-        stdlib_archive_stripped.total_size(compressed=True) + out_bundle_size
+        stdlib_archive_striped.total_size(compressed=True) + out_bundle_size
     )
 
     console.print(
