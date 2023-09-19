@@ -107,7 +107,7 @@ def main(
         packages[file_name] = ArchiveFile(package_dir / file_name, name=key)
 
     stdlib_archive = ArchiveFile(package_dir / "python_stdlib.zip", name="stdlib")
-    stdlib_striped_path = Path("python_stdlib_striped.zip")
+    stdlib_stripped_path = Path("python_stdlib_stripped.zip")
 
     console.print(
         f"Using stdlib ({len(stdlib_archive.namelist())} files) with a total size "
@@ -147,7 +147,7 @@ def main(
         out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
     ) as fh_out, Live(table) as live:
         with zipfile.ZipFile(
-            stdlib_striped_path, "w", compression=zipfile.ZIP_DEFLATED
+            stdlib_stripped_path, "w", compression=zipfile.ZIP_DEFLATED
         ) as fh_stdlib_out:
             # Find the prefix for one of the stdlib modules loaded from the zip files
             stdlib_prefix = db["init_sys_modules"]["pathlib"].replace("/pathlib.py", "")
@@ -163,19 +163,19 @@ def main(
                 # Include imported stdlib modules and all pyodide modules
                 # Some modules are used when loading the bundle (e.g. json)
                 if name in imported_paths or any(
-                    prefix in name for prefix in ["pyodide", "json"]
+                    prefix in name for prefix in ["pyodide", "json", "cp437"]
                 ):
                     fh_stdlib_out.writestr(name, stdlib_archive.read(name))
-        stdlib_archive_striped = ArchiveFile(stdlib_striped_path, name="stdlib")
+        stdlib_archive_stripped = ArchiveFile(stdlib_stripped_path, name="stdlib")
         msg_0 = "0"
         msg_1 = "stdlib"
-        msg_2 = f"{len(stdlib_archive.namelist())} [red]→[/red] {len(stdlib_archive_striped.namelist())}"
+        msg_2 = f"{len(stdlib_archive.namelist())} [red]→[/red] {len(stdlib_archive_stripped.namelist())}"
         msg_3 = ""
         msg_4 = (
             f"{stdlib_archive.total_size(compressed=True) / 1e6:.2f} [red]→[/red] "
-            f"{stdlib_archive_striped.total_size(compressed=True)/1e6:.2f}"
+            f"{stdlib_archive_stripped.total_size(compressed=True)/1e6:.2f}"
         )
-        msg_5 = f"{100*(1 - stdlib_archive_striped.total_size(compressed=True) / stdlib_archive.total_size(compressed=True)):.1f} %"
+        msg_5 = f"{100*(1 - stdlib_archive_stripped.total_size(compressed=True) / stdlib_archive.total_size(compressed=True)):.1f} %"
         table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5)
         live.refresh()
         for idx, ar in enumerate(sorted(packages.values(), key=lambda x: x.name)):
@@ -278,7 +278,7 @@ def main(
         js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"
         js_template_kwargs = dict(code=code, output_path="results.json", port=port)
         with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
-            shutil.copy(stdlib_striped_path, runner.tmp_path / stdlib_striped_path.name)
+            shutil.copy(stdlib_stripped_path, runner.tmp_path / stdlib_stripped_path.name)
             console.print("Running the input code in Node.js to validate bundle..\n")
             t0 = perf_counter()
             runner.run()
@@ -300,7 +300,7 @@ def main(
     console.print(table)
 
     total_final_size = (
-        stdlib_archive_striped.total_size(compressed=True) + out_bundle_size
+        stdlib_archive_stripped.total_size(compressed=True) + out_bundle_size
     )
 
     console.print(
