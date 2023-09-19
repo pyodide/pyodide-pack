@@ -24,7 +24,7 @@ pip install pyodide-pack
 (optionally) For elimation of unused modules via runtime detection, run NodeJS  needs to be installed together with Pyodide 0.24.0+:
 
 ```bash
-npm install pyodide@">0.24.0"
+npm install pyodide@">=0.24.0"
 ```
 
 ## Usage
