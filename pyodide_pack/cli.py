@@ -278,7 +278,9 @@ def main(
         js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"
         js_template_kwargs = dict(code=code, output_path="results.json", port=port)
         with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
-            shutil.copy(stdlib_stripped_path, runner.tmp_path / stdlib_stripped_path.name)
+            shutil.copy(
+                stdlib_stripped_path, runner.tmp_path / stdlib_stripped_path.name
+            )
             console.print("Running the input code in Node.js to validate bundle..\n")
             t0 = perf_counter()
             runner.run()
