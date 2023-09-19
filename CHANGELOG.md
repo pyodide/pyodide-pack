@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    removing comments and docstrings
    [#23](https://github.com/pyodide/pyodide-pack/pull/23)
 
+ - Add support for stdlib bundling in `pyodide pack`
+   [#27](https://github.com/pyodide/pyodide-pack/pull/27)
+
+
 ### Changed
 
  - Added support for Pyodide 0.24.0. This is now the minimal supported version of Pyodide.

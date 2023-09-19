@@ -2,6 +2,7 @@ import fnmatch
 import gzip
 import json
 import os
+import shutil
 import sys
 import zipfile
 from pathlib import Path
@@ -32,6 +33,11 @@ def main(
         None,
         "--include",
         help='One or multiple glob patterns separated by "," of extra files to include',
+    ),
+    write_debug_map: bool = typer.Option(
+        False,
+        help="Write a debug map (to './debug-map.json') with all"
+        "the detected imports for the generated bundle",
     ),
 ):  # type: ignore
     """Create a minimal bundle for a Pyodide application with the required dependencies
@@ -81,8 +87,11 @@ def main(
             for idx, path in enumerate(db["find_object_calls"])
             if path.endswith(".so")
         }
+    if write_debug_map:
+        Path("./debug-map.json").write_text(json.dumps(db, indent=2))
 
     package_dir = ROOT_DIR / "node_modules" / "pyodide"
+
     with open(package_dir / "pyodide-lock.json") as fh:
         packages_json = json.load(fh)
 
@@ -97,6 +106,14 @@ def main(
 
         packages[file_name] = ArchiveFile(package_dir / file_name, name=key)
 
+    stdlib_archive = ArchiveFile(package_dir / "python_stdlib.zip", name="stdlib")
+    stdlib_stripped_path = Path("python_stdlib_stripped.zip")
+
+    console.print(
+        f"Using stdlib ({len(stdlib_archive.namelist())} files) with a total size "
+        f"of {stdlib_archive.total_size(compressed=True)/1e6:.2f} MB."
+    )
+
     packages_size = sum(el.total_size(compressed=False) for el in packages.values())
     packages_size_gzip = sum(el.total_size(compressed=True) for el in packages.values())
     console.print(
@@ -104,10 +121,16 @@ def main(
         f"total size of {packages_size_gzip/1e6:.2f} MB  "
         f"(uncompressed: {packages_size/1e6:.2f} MB)"
     )
+    if db["opened_file_names"]:
+        console.print(
+            f"In total {len(db['opened_file_names'])} files and "
+            f"{len(db['find_object_calls'])} dynamic libraries were accessed."
+        )
+    total_initial_size = packages_size_gzip + stdlib_archive.total_size(compressed=True)
     console.print(
-        f"In total {len(db['opened_file_names'])} files and {len(db['find_object_calls'])} "
-        "dynamic libraries were accessed.\n"
+        f"Total initial size (stdlib + dependencies): {total_initial_size/1e6:.2f} MB"
     )
+    console.print("\n")
 
     out_bundle_path = Path("./pyodide-package-bundle.zip")
 
@@ -123,6 +146,38 @@ def main(
     with zipfile.ZipFile(
         out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
     ) as fh_out, Live(table) as live:
+        with zipfile.ZipFile(
+            stdlib_stripped_path, "w", compression=zipfile.ZIP_DEFLATED
+        ) as fh_stdlib_out:
+            # Find the prefix for one of the stdlib modules loaded from the zip files
+            stdlib_prefix = db["init_sys_modules"]["pathlib"].replace("/pathlib.py", "")
+            imported_paths = (
+                list(db["init_sys_modules"].values()) + db["opened_file_names"]
+            )
+            imported_paths = [
+                path.replace(stdlib_prefix + "/", "")
+                for path in imported_paths
+                if path.startswith(stdlib_prefix)
+            ]
+            for name in stdlib_archive.namelist():
+                # Include imported stdlib modules and all pyodide modules
+                # Some modules are used when loading the bundle (e.g. json)
+                if name in imported_paths or any(
+                    prefix in name for prefix in ["pyodide", "json", "cp437"]
+                ):
+                    fh_stdlib_out.writestr(name, stdlib_archive.read(name))
+        stdlib_archive_stripped = ArchiveFile(stdlib_stripped_path, name="stdlib")
+        msg_0 = "0"
+        msg_1 = "stdlib"
+        msg_2 = f"{len(stdlib_archive.namelist())} [red]→[/red] {len(stdlib_archive_stripped.namelist())}"
+        msg_3 = ""
+        msg_4 = (
+            f"{stdlib_archive.total_size(compressed=True) / 1e6:.2f} [red]→[/red] "
+            f"{stdlib_archive_stripped.total_size(compressed=True)/1e6:.2f}"
+        )
+        msg_5 = f"{100*(1 - stdlib_archive_stripped.total_size(compressed=True) / stdlib_archive.total_size(compressed=True)):.1f} %"
+        table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5)
+        live.refresh()
         for idx, ar in enumerate(sorted(packages.values(), key=lambda x: x.name)):
             # Sort keys for reproducibility
             in_file_names = sorted(ar.namelist())
@@ -212,16 +267,20 @@ def main(
             fh.write(loader_path.read_text().encode("utf-8"))
 
     out_bundle_size = out_bundle_path.stat().st_size
-    console.print(
-        f"Wrote {out_bundle_path} with {out_bundle_size/ 1e6:.2f} MB "
-        f"({100*(1 - out_bundle_size/packages_size_gzip):.1f}% reduction) \n"
-    )
+    if packages_size_gzip:
+        console.print(
+            f"Wrote {out_bundle_path} with {out_bundle_size/ 1e6:.2f} MB "
+            f"({100*(1 - out_bundle_size/packages_size_gzip):.1f}% reduction) \n"
+        )
 
     # We start a webserver so that the bundle can be loaded via fetch
     with spawn_web_server(dist_dir=".") as (_, port, server_logs):
         js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "validate.js"
         js_template_kwargs = dict(code=code, output_path="results.json", port=port)
         with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
+            shutil.copy(
+                stdlib_stripped_path, runner.tmp_path / stdlib_stripped_path.name
+            )
             console.print("Running the input code in Node.js to validate bundle..\n")
             t0 = perf_counter()
             runner.run()
@@ -241,6 +300,16 @@ def main(
         "[bold]100 %[/bold]",
     )
     console.print(table)
+
+    total_final_size = (
+        stdlib_archive_stripped.total_size(compressed=True) + out_bundle_size
+    )
+
+    console.print(
+        f"\nTotal output size (stdlib + packages): "
+        f"{total_final_size/1e6:.2f} MB "
+        f"({100*(1 - total_final_size/total_initial_size):.1f}% reduction)"
+    )
 
     console.print("\nBundle validation successful.")
 
