@@ -1,7 +1,7 @@
 # Module removal by runtime detection
 
 1. Create file with the code of your Python application running in the web. As example we will take,
-   `examples/scikit-learn/app.py`
+   `examples/pandas/app.py`
 
    **app.py**
 
@@ -31,40 +31,43 @@
    Loaded requirements from: examples/pandas/requirements.txt
    Running the input code in Node.js to detect used modules..
 
-   [..]
+   [...]
+   Done input code execution in 3.8 s
 
-   Done input code execution in 11.1 s
+   Using stdlib (547 files) with a total size of 2.25 MB.
+   Detected 5 dependencies with a total size of 8.92 MB  (uncompressed: 35.46 MB)
+   In total 487 files and 0 dynamic libraries were accessed.
+   Total initial size (stdlib + dependencies): 11.17 MB
 
-   Detected 8 dependencies with a total size of 10.54 MB  (uncompressed: 40.99 MB)
-   In total 425 files and 54 dynamic libraries were accessed.
 
                                           Packing..
    ┏━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━┓
    ┃ No ┃ Package                        ┃ All files ┃ .so libs ┃   Size (MB) ┃ Reduction ┃
    ┡━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━╇━━━━━━━━━━━┩
-   │  1 │ distutils.tar                  │   101 → 0 │    0 → 0 │ 0.26 → 0.00 │   100.0 % │
-   │  2 │ numpy-1.22.3-cp310-cp310-emsc… │  418 → 94 │  19 → 13 │ 3.63 → 2.49 │    31.4 % │
-   │  3 │ pandas-1.4.2-cp310-cp310-emsc… │ 469 → 283 │  42 → 41 │ 5.11 → 4.50 │    12.0 % │
-   │  4 │ pyparsing-3.0.7-py3-none-any.… │    17 → 0 │    0 → 0 │ 0.10 → 0.00 │   100.0 % │
-   │  5 │ python_dateutil-2.8.2-py2.py3… │   25 → 15 │    0 → 0 │ 0.24 → 0.22 │     9.4 % │
-   │  6 │ pytz-2022.1-py2.py3-none-any.… │   612 → 5 │    0 → 0 │ 0.43 → 0.02 │    96.1 % │
-   │  7 │ setuptools-62.0.0-py3-none-an… │   213 → 0 │    0 → 0 │ 0.76 → 0.00 │   100.0 % │
-   │  8 │ six-1.16.0-py2.py3-none-any.w… │     6 → 1 │    0 → 0 │ 0.01 → 0.01 │    18.5 % │
+   │  0 │ stdlib                         │ 547 → 151 │          │ 2.25 → 0.75 │    66.7 % │
+   │  1 │ numpy-1.25.2-cp311-cp311-emsc… │ 430 → 111 │   19 → 0 │ 3.06 → 2.36 │    23.0 % │
+   │  2 │ pandas-1.5.3-cp311-cp311-emsc… │ 462 → 292 │   42 → 0 │ 5.17 → 4.64 │    10.3 % │
+   │  3 │ python_dateutil-2.8.2-py2.py3… │   25 → 15 │    0 → 0 │ 0.24 → 0.22 │     9.4 % │
+   │  4 │ pytz-2023.3-py2.py3-none-any.… │   614 → 5 │    0 → 0 │ 0.43 → 0.02 │    96.1 % │
+   │  5 │ six-1.16.0-py2.py3-none-any.w… │     6 → 1 │    0 → 0 │ 0.01 → 0.01 │    18.5 % │
    └────┴────────────────────────────────┴───────────┴──────────┴─────────────┴───────────┘
-   Wrote pyodide-package-bundle.zip with 7.36 MB (30.2% reduction)
+   Wrote pyodide-package-bundle.zip with 7.37 MB (17.4% reduction)
 
+   Spawning webserver at http://127.0.0.1:52009 (see logs in /tmp/tmpx0ktv9fw/http-server.log)
    Running the input code in Node.js to validate bundle..
 
            Validating and benchmarking the output bundle..
    ┏━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┓
    ┃ Step                 ┃ Load time (s) ┃ Fraction of load time ┃
    ┡━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━┩
-   │ loadPyodide          │          2.59 │                24.4 % │
-   │ fetch_unpack_archive │          0.27 │                 2.5 % │
-   │ load_dynamic_libs    │          6.21 │                58.5 % │
-   │ import_run_app       │          1.56 │                14.7 % │
-   │ TOTAL                │         10.63 │                 100 % │
+   │ loadPyodide          │          1.34 │                36.1 % │
+   │ fetch_unpack_archive │          0.27 │                 7.4 % │
+   │ load_dynamic_libs    │          0.00 │                 0.1 % │
+   │ import_run_app       │          2.10 │                56.5 % │
+   │ TOTAL                │          3.72 │                 100 % │
    └──────────────────────┴───────────────┴───────────────────────┘
+
+   Total output size (stdlib + packages): 8.12 MB (27.3% reduction)
 
    Bundle validation successful.
    ```
