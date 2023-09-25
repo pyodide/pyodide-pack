@@ -1,4 +1,4 @@
-(=ast-rewrite)
+(ast-rewrite=)
 
 # Abstract Syntax Tree (AST) Rewrite
 
