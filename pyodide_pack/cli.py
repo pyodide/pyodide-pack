@@ -14,11 +14,15 @@ from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
-from pyodide_pack._utils import match_suffix, spawn_web_server
+from pyodide_pack._utils import (
+    _get_packages_from_lockfile,
+    match_suffix,
+    spawn_web_server,
+)
 from pyodide_pack.archive import ArchiveFile
 from pyodide_pack.dynamic_lib import DynamicLib
-from pyodide_pack.pack import _get_packages_from_lockfile, _load_results_json
 from pyodide_pack.runners.node import NodeRunner
+from pyodide_pack.runtime_detection import RuntimeResults
 
 ROOT_DIR = Path(__file__).parents[1]
 
@@ -78,7 +82,7 @@ def main(
             f"\nDone input code execution in [bold]{perf_counter() - t0:.1f} s[/bold]\n"
         )
 
-        db = _load_results_json(runner.tmp_path / "results.json")
+        db = RuntimeResults.from_json(runner.tmp_path / "results.json")
 
     if write_debug_map:
         Path("./debug-map.json").write_text(json.dumps(db, indent=2))
