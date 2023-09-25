@@ -9,6 +9,7 @@ from pathlib import Path
 from time import perf_counter
 
 import typer
+from pyodide_lock import PyodideLockSpec
 from rich.console import Console
 from rich.live import Live
 from rich.table import Table
@@ -16,6 +17,7 @@ from rich.table import Table
 from pyodide_pack._utils import match_suffix, spawn_web_server
 from pyodide_pack.archive import ArchiveFile
 from pyodide_pack.dynamic_lib import DynamicLib
+from pyodide_pack.pack import _get_packages_from_lockfile, _load_results_json
 from pyodide_pack.runners.node import NodeRunner
 
 ROOT_DIR = Path(__file__).parents[1]
@@ -76,35 +78,18 @@ def main(
             f"\nDone input code execution in [bold]{perf_counter() - t0:.1f} s[/bold]\n"
         )
 
-        with open(runner.tmp_path / "results.json") as fh:
-            db = json.load(fh)
+        db = _load_results_json(runner.tmp_path / "results.json")
 
-        db["opened_file_names"] = list(
-            {path for path in db["opened_file_names"] if "__pycache__" not in path}
-        )
-        db["dynamic_libs_map"] = {
-            path: DynamicLib(path, load_order=idx)
-            for idx, path in enumerate(db["find_object_calls"])
-            if path.endswith(".so")
-        }
     if write_debug_map:
         Path("./debug-map.json").write_text(json.dumps(db, indent=2))
 
     package_dir = ROOT_DIR / "node_modules" / "pyodide"
 
-    with open(package_dir / "pyodide-lock.json") as fh:
-        packages_json = json.load(fh)
+    pyodide_lock = PyodideLockSpec.from_json(package_dir / "pyodide-lock.json")
 
-    packages: dict[str, ArchiveFile] = {}
-    for key, val in db["loaded_packages"].items():
-        if val == "default channel":
-            file_name = packages_json["packages"][key]["file_name"]
-        else:
-            # Otherwise loaded from custom URL
-            # TODO: this branch needs testing
-            file_name = val
-
-        packages[file_name] = ArchiveFile(package_dir / file_name, name=key)
+    packages = _get_packages_from_lockfile(
+        pyodide_lock, db["loaded_packages"], package_dir
+    )
 
     stdlib_archive = ArchiveFile(package_dir / "python_stdlib.zip", name="stdlib")
     stdlib_stripped_path = Path("python_stdlib_stripped.zip")
@@ -209,9 +194,7 @@ def main(
                     # also determine if it's a shared library or not from
                     # the given package
                     dll = db["dynamic_libs_map"][out_file_name]
-                    dll.shared = packages_json["packages"][ar.name].get(
-                        "sharedlibrary", False
-                    )
+                    dll.shared = pyodide_lock.packages[ar.name].sharedlibrary
                     dynamic_libs.append(dll)
 
                 if (
@@ -233,9 +216,7 @@ def main(
                             stats["so_out"] += 1
                             # Manually included dynamic libraries are going to be loaded first
                             dll = DynamicLib(out_file_name, load_order=-1000)
-                            dll.shared = packages_json["packages"][ar.name].get(
-                                "sharedlibrary", False
-                            )
+                            dll.shared = pyodide_lock.packages[ar.name].sharedlibrary
                             dynamic_libs.append(dll)
 
                 if out_file_name is not None:
