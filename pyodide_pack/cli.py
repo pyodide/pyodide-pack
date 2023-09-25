@@ -131,27 +131,15 @@ def main(
     with zipfile.ZipFile(
         out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
     ) as fh_out, Live(table) as live:
-        with zipfile.ZipFile(
-            stdlib_stripped_path, "w", compression=zipfile.ZIP_DEFLATED
-        ) as fh_stdlib_out:
-            # Find the prefix for one of the stdlib modules loaded from the zip files
-            stdlib_prefix = db["init_sys_modules"]["pathlib"].replace("/pathlib.py", "")
-            imported_paths = (
-                list(db["init_sys_modules"].values()) + db["opened_file_names"]
-            )
-            imported_paths = [
-                path.replace(stdlib_prefix + "/", "")
-                for path in imported_paths
-                if path.startswith(stdlib_prefix)
-            ]
-            for name in stdlib_archive.namelist():
-                # Include imported stdlib modules and all pyodide modules
-                # Some modules are used when loading the bundle (e.g. json)
-                if name in imported_paths or any(
-                    prefix in name for prefix in ["pyodide", "json", "cp437"]
-                ):
-                    fh_stdlib_out.writestr(name, stdlib_archive.read(name))
-        stdlib_archive_stripped = ArchiveFile(stdlib_stripped_path, name="stdlib")
+        imported_paths = db.get_imported_paths(strip_prefix=db.stdlib_prefix)
+        stdlib_archive_stripped = stdlib_archive.filter_to_zip(
+            stdlib_stripped_path,
+            # Include imported stdlib modules and all pyodide modules
+            # Some modules are used when loading the bundle (e.g. json)
+            func=lambda name: name in imported_paths
+            or any(prefix in name for prefix in ["pyodide", "json", "cp437"]),
+        )
+
         msg_0 = "0"
         msg_1 = "stdlib"
         msg_2 = f"{len(stdlib_archive.namelist())} [red]→[/red] {len(stdlib_archive_stripped.namelist())}"

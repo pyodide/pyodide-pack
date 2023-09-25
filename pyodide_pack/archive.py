@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import functools
 import gzip
 import tarfile
 import zipfile
+from collections.abc import Callable
 from pathlib import Path
 
 
@@ -47,6 +50,20 @@ class ArchiveFile:
                 return fh.read()
             else:
                 return None
+
+    def filter_to_zip(
+        self, output_path: Path, func: Callable, compression=zipfile.ZIP_DEFLATED
+    ) -> ArchiveFile:
+        """Filter the list of files in the archive and write to a new zip file
+
+        The filter function `func` must take the name of the file in the archive, and return
+        True if the file should be included in the new archive, False otherwise.
+        """
+        with zipfile.ZipFile(output_path, "w", compression=compression) as fh:
+            for name in self.namelist():
+                if func(name):
+                    fh.writestr(name, self.read(name))
+        return ArchiveFile(output_path, self.name)
 
     @functools.cache
     def total_size(self, compressed: bool = False) -> int:
