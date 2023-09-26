@@ -8,7 +8,7 @@ async function main() {
   let bench = new Object();
 
   let t0 = process.hrtime.bigint();
-  let pyodide = await loadPyodide({fullStdLib: false, stdLibURL: "http://127.0.0.1:{{ port }}/python_stdlib_striped.zip"});
+  let pyodide = await loadPyodide({fullStdLib: false, stdLibURL: "http://127.0.0.1:{{ port }}/python_stdlib_stripped.zip"});
   bench.loadPyodide = Number(process.hrtime.bigint() - t0);
 
 
