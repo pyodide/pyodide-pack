@@ -14,8 +14,9 @@ class RuntimeResults(dict):
 
         Examples
         --------
-        >>> db = RuntimeResults(
-
+        >>> db = RuntimeResults(init_sys_modules={"pathlib": "/lib/python311.zip/pathlib.py"})
+        >>> db.stdlib_prefix
+        '/lib/python311.zip'
         """
         return self["init_sys_modules"]["pathlib"].replace("/pathlib.py", "")
 
@@ -23,6 +24,15 @@ class RuntimeResults(dict):
         """Get the paths of all imported modules.
 
         Optionally by stripping a prefix from the paths.
+
+        Examples
+        --------
+        >>> db = RuntimeResults(init_sys_modules={
+        ...         "pathlib": "/lib/python311.zip/pathlib.py",
+        ...         "os": "/lib/python311.zip/os.py"},
+        ...     opened_file_names=["/lib/python311.zip/pathlib.py"])
+        >>> db.get_imported_paths()
+        ['/lib/python311.zip/pathlib.py', '/lib/python311.zip/os.py']
         """
         imported_paths = (
             list(self["init_sys_modules"].values()) + self["opened_file_names"]
@@ -33,6 +43,8 @@ class RuntimeResults(dict):
                 for path in imported_paths
                 if path.startswith(strip_prefix)
             ]
+        # Remove duplicates, relying on the fact that dict preserves insertion order
+        imported_paths = list(dict.fromkeys(imported_paths))
         return imported_paths
 
     @classmethod
