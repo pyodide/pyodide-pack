@@ -33,6 +33,8 @@ class RuntimeResults(dict):
         ...     opened_file_names=["/lib/python311.zip/pathlib.py"])
         >>> db.get_imported_paths()
         ['/lib/python311.zip/pathlib.py', '/lib/python311.zip/os.py']
+        >>> db.get_imported_paths(strip_prefix="/lib/python311.zip")
+        ['pathlib.py', 'os.py']
         """
         imported_paths = (
             list(self["init_sys_modules"].values()) + self["opened_file_names"]
@@ -53,9 +55,12 @@ class RuntimeResults(dict):
         with open(path) as fh:
             db = cls(json.load(fh))
 
-        db["opened_file_names"] = list(
-            {path for path in db["opened_file_names"] if "__pycache__" not in path}
-        )
+        db["opened_file_names"] = [
+            path for path in db["opened_file_names"] if "__pycache__" not in path
+        ]
+        # drop duplicates, while preserving order
+        db["opened_file_names"] = list(dict.fromkeys(db["opened_file_names"]))
+
         db["dynamic_libs_map"] = {
             path: DynamicLib(path, load_order=idx)
             for idx, path in enumerate(db["find_object_calls"])
