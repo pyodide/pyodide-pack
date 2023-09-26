@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Add support for stdlib bundling in `pyodide pack`
    [#27](https://github.com/pyodide/pyodide-pack/pull/27)
 
+ - Add support for packages installed via micropip in `pyodide pack`
+   [#31](https://github.com/pyodide/pyodide-pack/pull/31)
+
 
 ### Changed
 

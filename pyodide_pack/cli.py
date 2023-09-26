@@ -89,7 +89,10 @@ def main(
 
     package_dir = ROOT_DIR / "node_modules" / "pyodide"
 
-    pyodide_lock = PyodideLockSpec.from_json(package_dir / "pyodide-lock.json")
+    if "pyodide_lock" in db:
+        pyodide_lock = PyodideLockSpec(**json.loads(db["pyodide_lock"]))
+    else:
+        pyodide_lock = PyodideLockSpec.from_json(package_dir / "pyodide-lock.json")
 
     packages = _get_packages_from_lockfile(
         pyodide_lock, db["loaded_packages"], package_dir
