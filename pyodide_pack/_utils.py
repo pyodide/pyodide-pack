@@ -6,6 +6,10 @@ import tempfile
 from contextlib import contextmanager
 from pathlib import Path
 
+from pyodide_lock import PyodideLockSpec
+
+from pyodide_pack.archive import ArchiveFile
+
 
 def match_suffix(file_paths: list[str], suffix: str) -> str | None:
     """Match suffix in a list of file paths.
@@ -103,3 +107,20 @@ def spawn_web_server(dist_dir):
     finally:
         p.terminate()
         shutil.rmtree(tmp_dir)
+
+
+def _get_packages_from_lockfile(
+    pyodide_lock: PyodideLockSpec, loaded_packages: dict[str, str], package_dir: Path
+) -> dict[str, ArchiveFile]:
+    """Get the dictionary of packages from a lockfile wrapped into ArchiveFile objects."""
+    packages: dict[str, ArchiveFile] = {}
+    for key, val in loaded_packages.items():
+        if val == "default channel":
+            file_name = pyodide_lock.packages[key].file_name
+        else:
+            # Otherwise loaded from custom URL
+            # TODO: this branch needs testing
+            file_name = val
+
+        packages[file_name] = ArchiveFile(package_dir / file_name, name=key)
+    return packages

@@ -15,6 +15,7 @@ requires-python = ">=3.10"
 dependencies = [
     "jinja2",
     "pyodide-cli>=0.2.0",
+    "pyodide-lock",
 ]
 dynamic = ["version"]
 

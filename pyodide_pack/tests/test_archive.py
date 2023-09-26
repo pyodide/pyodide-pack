@@ -35,3 +35,21 @@ def test_archive(format_, tmp_path):
     assert ar.total_size(compressed=False) == 4
     # For this example the gzip compression has an overhead of 20 bytes
     assert ar.total_size(compressed=True) == 24
+
+
+def test_archive_filter_to_zip(tmp_path):
+    file_path = tmp_path / "test.zip"
+    with zipfile.ZipFile(file_path, "w", compression=zipfile.ZIP_DEFLATED) as fh:
+        for key in "abcd":
+            with fh.open(f"{key}.py", "w") as fh_el:
+                fh_el.write(b"test" + bytes(key, "utf-8"))
+    assert file_path.exists()
+
+    ar = ArchiveFile(file_path, name="test")
+    assert ar.name == "test"
+    assert ar.namelist() == ["a.py", "b.py", "c.py", "d.py"]
+
+    ar_stripped = ar.filter_to_zip(
+        tmp_path / "test_stripped.zip", lambda x: x != "b.py"
+    )
+    assert ar_stripped.namelist() == ["a.py", "c.py", "d.py"]

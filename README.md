@@ -1,7 +1,7 @@
 # pyodide-pack
 
 [![PyPI Latest Release](https://img.shields.io/pypi/v/pyodide-pack.svg)](https://pypi.org/project/pyodide-pack/)
-[![GHA CI](https://github.com/rth/pyodide-pack/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/rth/pyodide-pack/actions/workflows/main.yml)
+[![GHA CI](https://github.com/pyodide/pyodide-pack/actions/workflows/main.yml/badge.svg?branch=main)](https://github.com/pyodide/pyodide-pack/actions/workflows/main.yml)
 [![codecov](https://codecov.io/github/pyodide/pyodide-pack/branch/main/graph/badge.svg?token=2BBYXLX6AE)](https://codecov.io/github/pyodide/pyodide-pack)
 
 Python package bundler and minifier for the web
