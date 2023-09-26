@@ -14,11 +14,11 @@ class RuntimeResults(dict):
 
         Examples
         --------
-        >>> db = RuntimeResults(init_sys_modules={"pathlib": "/lib/python311.zip/pathlib.py"})
+        >>> db = RuntimeResults(sys_modules={"pathlib": "/lib/python311.zip/pathlib.py"})
         >>> db.stdlib_prefix
         '/lib/python311.zip'
         """
-        return self["init_sys_modules"]["pathlib"].replace("/pathlib.py", "")
+        return self["sys_modules"]["pathlib"].replace("/pathlib.py", "")
 
     def get_imported_paths(self, strip_prefix: str | None = None):
         """Get the paths of all imported modules.
@@ -27,7 +27,7 @@ class RuntimeResults(dict):
 
         Examples
         --------
-        >>> db = RuntimeResults(init_sys_modules={
+        >>> db = RuntimeResults(sys_modules={
         ...         "pathlib": "/lib/python311.zip/pathlib.py",
         ...         "os": "/lib/python311.zip/os.py"},
         ...     opened_file_names=["/lib/python311.zip/pathlib.py"])
@@ -36,9 +36,7 @@ class RuntimeResults(dict):
         >>> db.get_imported_paths(strip_prefix="/lib/python311.zip")
         ['pathlib.py', 'os.py']
         """
-        imported_paths = (
-            list(self["init_sys_modules"].values()) + self["opened_file_names"]
-        )
+        imported_paths = list(self["sys_modules"].values()) + self["opened_file_names"]
         if strip_prefix is not None:
             imported_paths = [
                 path.replace(strip_prefix + "/", "")

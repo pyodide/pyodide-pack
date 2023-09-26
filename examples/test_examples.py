@@ -11,7 +11,17 @@ from pyodide_pack import cli
 def gen_all_examples():
     for path in Path("examples").glob("*"):
         if path.is_dir() and (path / "requirements.txt").exists():
-            yield path.resolve()
+            path = path.resolve()
+            if path.name in ["scikit-learn", "scipy"]:
+                yield pytest.param(
+                    path,
+                    marks=pytest.mark.xfail(
+                        reason="Known issue with .so loading in scipy"
+                    ),
+                    id=path.name,
+                )
+            else:
+                yield pytest.param(path, id=path.name)
 
 
 BASE_DIR = Path(__file__).parents[1]
@@ -34,6 +44,12 @@ def test_all(example_dir, tmp_path):
             write_debug_map=True,
         )
 
-    breakpoint()
-
-    print(example_dir)
+    stdout_str = stdout.getvalue()
+    assert "Bundle validation successful" in stdout_str
+    assert (tmp_path / "python_stdlib_stripped.zip").exists()
+    # Better than 20% size reduction on the stdlib
+    assert (tmp_path / "python_stdlib_stripped.zip").stat().st_size < (
+        tmp_path / "node_modules/pyodide/python_stdlib.zip"
+    ).stat().st_size * 0.8
+    assert (tmp_path / "pyodide-package-bundle.zip").exists()
+    assert (tmp_path / "debug-map.json").exists()
