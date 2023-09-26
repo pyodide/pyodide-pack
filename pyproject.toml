@@ -36,6 +36,7 @@ minify = "pyodide_pack.ast_rewrite:main"
 dev = [
     "pytest",
     "pytest-cov",
+    "pytest-xdist",
     "hypothesis",
 ]
 
@@ -67,6 +68,7 @@ addopts = [
 ]
 testpaths = [
    "pyodide_pack",
+   "examples/test_examples.py"
 ]
 
 [tool.ruff]

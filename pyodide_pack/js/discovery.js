@@ -4,9 +4,6 @@ async function main() {
   let fs = await import("fs");
 
   let pyodide = await loadPyodide()
-  let initSysModules = pyodide.runPython(
-	"import sys; {name: getattr(mod, '__file__', None) for name, mod in sys.modules.items()}"
-  ).toJs({dict_converter : Object.fromEntries});
   let file_list = [];
   const open_orig = pyodide._module.FS.open;
   // Monkeypatch FS.open
@@ -34,13 +31,17 @@ async function main() {
   await pyodide.runPythonAsync(`
 {{ code }}
 `);
+  // Look for loaded modules. That's the only way to access imported stdlib from the zipfile.
+  let sysModules = pyodide.runPython(
+	"import sys; {name: getattr(mod, '__file__', None) for name, mod in sys.modules.items()}"
+  ).toJs({dict_converter : Object.fromEntries});
 
   // writing the list of accessed files to disk
   var obj = new Object();
   obj.opened_file_names = file_list;
   obj.loaded_packages = pyodide.loadedPackages;
   obj.find_object_calls = findObjectCalls;
-  obj.init_sys_modules = initSysModules;
+  obj.sys_modules = sysModules;
   // For some reason there is a double / in the path
   obj.stdlib_prefix = pyodide.pyimport('sysconfig').get_path('stdlib').replace('//', '/');
   let jsonString = JSON.stringify(obj);
