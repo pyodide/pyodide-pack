@@ -140,11 +140,7 @@ def main(
     ) as fh_out, Live(table) as live:
         imported_paths = db.get_imported_paths(strip_prefix=db.stdlib_prefix)
         stdlib_archive_stripped = stdlib_archive.filter_to_zip(
-            stdlib_stripped_path,
-            # Include imported stdlib modules and all pyodide modules
-            # Some modules are used when loading the bundle (e.g. json)
-            func=lambda name: name in imported_paths
-            or any(prefix in name for prefix in ["pyodide", "json", "cp437"]),
+            stdlib_stripped_path, func=lambda name: name in imported_paths
         )
 
         msg_0 = "0"

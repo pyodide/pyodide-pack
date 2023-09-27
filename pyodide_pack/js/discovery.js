@@ -38,6 +38,10 @@ async function main() {
   await pyodide.runPythonAsync(`
 {{ code }}
 `);
+  // Run code used in the loader
+  await pyodide.runPythonAsync(`
+import pyodide.http
+`);
   // Look for loaded modules. That's the only way to access imported stdlib from the zipfile.
   let sysModules = pyodide.runPython(
 	"import sys; {name: getattr(mod, '__file__', None) for name, mod in sys.modules.items()}"
