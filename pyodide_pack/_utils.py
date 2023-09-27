@@ -3,6 +3,7 @@ import os
 import shutil
 import sys
 import tempfile
+import urllib.request
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -117,6 +118,13 @@ def _get_packages_from_lockfile(
     for key, val in loaded_packages.items():
         if val == "default channel":
             file_name = pyodide_lock.packages[key].file_name
+        elif val == "pypi":
+            url = pyodide_lock.packages[key].file_name
+            file_name = os.path.basename(url)
+            # Cache wheels in node_modules/pyodide
+            # Will raise an exception if the URL is not valid
+            with urllib.request.urlopen(url) as response:
+                (package_dir / file_name).write_bytes(response.read())
         else:
             # Otherwise loaded from custom URL
             # TODO: this branch needs testing

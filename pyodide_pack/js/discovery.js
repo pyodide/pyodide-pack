@@ -19,7 +19,14 @@ async function main() {
     return open_orig(path, flags, mode, fd_start, fd_end);
   };
 
-  await pyodide.loadPackage({{packages}});
+  try {
+  	await pyodide.loadPackage({{packages}});
+  } catch (e) {
+	console.log("Failed to load packages with loadPackage, re-trying with micropip.");
+	await pyodide.loadPackage("micropip");
+	let micropip = pyodide.pyimport("micropip");
+	await micropip.install({{packages}});
+  }
 
   // Monkeypatching findObject calls used in dlopen
   let findObjectCalls = [];
@@ -42,6 +49,9 @@ async function main() {
   obj.loaded_packages = pyodide.loadedPackages;
   obj.find_object_calls = findObjectCalls;
   obj.sys_modules = sysModules;
+  if ("micropip" in pyodide.loadedPackages) {
+    obj.pyodide_lock = pyodide.pyimport("micropip").freeze();
+  }
   // For some reason there is a double / in the path
   obj.stdlib_prefix = pyodide.pyimport('sysconfig').get_path('stdlib').replace('//', '/');
   let jsonString = JSON.stringify(obj);

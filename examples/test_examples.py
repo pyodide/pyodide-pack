@@ -46,6 +46,15 @@ def test_all(example_dir, tmp_path):
 
     stdout_str = stdout.getvalue()
     assert "Bundle validation successful" in stdout_str
+    using_micropip = (
+        "Failed to load packages with loadPackage, re-trying with micropip."
+        in stdout_str
+    )
+
+    if example_dir.name == ["micropip_deps"]:
+        assert using_micropip
+    else:
+        assert not using_micropip
     assert (tmp_path / "python_stdlib_stripped.zip").exists()
     # Better than 20% size reduction on the stdlib
     assert (tmp_path / "python_stdlib_stripped.zip").stat().st_size < (
