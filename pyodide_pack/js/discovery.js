@@ -22,7 +22,7 @@ async function main() {
   try {
   	await pyodide.loadPackage({{packages}});
   } catch (e) {
-	console.log("Failed to load packages, trying to load micropip");
+	console.log("Failed to load packages with loadPackage, re-trying with micropip.");
 	await pyodide.loadPackage("micropip");
 	let micropip = pyodide.pyimport("micropip");
 	await micropip.install({{packages}});
