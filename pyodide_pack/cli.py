@@ -185,7 +185,6 @@ def main(
                     # also determine if it's a shared library or not from
                     # the given package
                     dll = db["dynamic_libs_map"][out_file_name]
-                    dll.shared = pyodide_lock.packages[ar.name].sharedlibrary
                     dynamic_libs.append(dll)
 
                 if (
@@ -207,7 +206,6 @@ def main(
                             stats["so_out"] += 1
                             # Manually included dynamic libraries are going to be loaded first
                             dll = DynamicLib(out_file_name, load_order=-1000)
-                            dll.shared = pyodide_lock.packages[ar.name].sharedlibrary
                             dynamic_libs.append(dll)
 
                 if out_file_name is not None:

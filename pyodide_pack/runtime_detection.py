@@ -60,8 +60,10 @@ class RuntimeResults(dict):
         db["opened_file_names"] = list(dict.fromkeys(db["opened_file_names"]))
 
         db["dynamic_libs_map"] = {
-            path: DynamicLib(path, load_order=idx)
-            for idx, path in enumerate(db["find_object_calls"])
+            path: DynamicLib(
+                obj["path"], shared=obj.get("global", False), load_order=idx
+            )
+            for idx, obj in enumerate(db["load_dyn_lib_calls"])
             if path.endswith(".so")
         }
         return db

@@ -19,6 +19,15 @@ async function main() {
     return open_orig(path, flags, mode, fd_start, fd_end);
   };
 
+  // Monkeypatching findObject calls used in dlopen
+  let loadDynlibCalls = [];
+  const loadDynlib_orig = pyodide._api.loadDynlib;
+  pyodide._api.loadDynlib = function(path, global) {
+	console.error("loadDynlib", path, global);
+	loadDynlibCalls.push({"path": path, "global": global});
+	return loadDynlib_orig(path, dontResolveLastLink);
+  }
+
   try {
   	await pyodide.loadPackage({{packages}});
   } catch (e) {
@@ -28,13 +37,6 @@ async function main() {
 	await micropip.install({{packages}});
   }
 
-  // Monkeypatching findObject calls used in dlopen
-  let findObjectCalls = [];
-  const findObject_orig = pyodide._module.FS.findObject;
-  pyodide._module.FS.findObject = function(path, dontResolveLastLink) {
-	findObjectCalls.push(path);
-	return findObject_orig(path, dontResolveLastLink);
-  }
   await pyodide.runPythonAsync(`
 {{ code }}
 `);
@@ -48,11 +50,13 @@ import pyodide.http
   ).toJs({dict_converter : Object.fromEntries});
 
   // writing the list of accessed files to disk
-  var obj = new Object();
-  obj.opened_file_names = file_list;
-  obj.loaded_packages = pyodide.loadedPackages;
-  obj.find_object_calls = findObjectCalls;
-  obj.sys_modules = sysModules;
+  var obj = {
+	opened_file_names: file_list,
+	loaded_packages: pyodide.loadedPackages,
+	load_dyn_lib_calls: loadDynlibCalls,
+	sys_modules: sysModules,
+	LDSO_loaded_libs_by_handle: pyodide._module.LDSO['loadedLibsByHandle'],
+  };
   if ("micropip" in pyodide.loadedPackages) {
     obj.pyodide_lock = pyodide.pyimport("micropip").freeze();
   }
