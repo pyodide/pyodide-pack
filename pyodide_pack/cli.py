@@ -52,7 +52,9 @@ def main(
     applications.
     """
     console = Console()
-    console.print(f"Running [bold]pyodide pack[/bold] on [bold]{example_path}[/bold]")
+    console.print(
+        f"Running [bold]pyodide pack[/bold] on [bold]{example_path}[/bold] in Node.js"
+    )
 
     if requirement_path is None:
         requirement_path = example_path.parent / "requirements.txt"
@@ -75,7 +77,6 @@ def main(
         code=code, packages=requirements, output_path="results.json"
     )
     with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
-        console.print("Running the input code in Node.js to detect used modules..\n")
         t0 = perf_counter()
         runner.run()
         console.print(
@@ -85,7 +86,7 @@ def main(
         db = RuntimeResults.from_json(runner.tmp_path / "results.json")
 
     if write_debug_map:
-        Path("./debug-map.json").write_text(json.dumps(db, indent=2))
+        db.to_json(Path("./debug-map.json"))
 
     package_dir = ROOT_DIR / "node_modules" / "pyodide"
 
@@ -101,11 +102,6 @@ def main(
     stdlib_archive = ArchiveFile(package_dir / "python_stdlib.zip", name="stdlib")
     stdlib_stripped_path = Path("python_stdlib_stripped.zip")
 
-    console.print(
-        f"Using stdlib ({len(stdlib_archive.namelist())} files) with a total size "
-        f"of {stdlib_archive.total_size(compressed=True)/1e6:.2f} MB."
-    )
-
     packages_size = sum(el.total_size(compressed=False) for el in packages.values())
     packages_size_gzip = sum(el.total_size(compressed=True) for el in packages.values())
     console.print(
@@ -113,11 +109,11 @@ def main(
         f"total size of {packages_size_gzip/1e6:.2f} MB  "
         f"(uncompressed: {packages_size/1e6:.2f} MB)"
     )
-    if db["opened_file_names"]:
-        console.print(
-            f"In total {len(db['opened_file_names'])} files and "
-            f"{len(db['find_object_calls'])} dynamic libraries were accessed."
-        )
+    # if db["opened_file_names"]:
+    #    console.print(
+    #        f"In total {len(db['opened_file_names'])} files and "
+    #        f"{len(db['find_object_calls'])} dynamic libraries were accessed."
+    #    )
     total_initial_size = packages_size_gzip + stdlib_archive.total_size(compressed=True)
     console.print(
         f"Total initial size (stdlib + dependencies): {total_initial_size/1e6:.2f} MB"
@@ -175,17 +171,17 @@ def main(
                         stats["so_in"] += 1
 
                 out_file_name = None
-                if out_file_name := match_suffix(db["opened_file_names"], in_file_name):
-                    stats["py_out"] += 1
-                elif out_file_name := match_suffix(
-                    list(db["dynamic_libs_map"].keys()), in_file_name
+                if out_file_name := match_suffix(
+                    list(db["dl_accessed_symbols"].keys()), in_file_name
                 ):
                     stats["so_out"] += 1
                     # Get the dynamic library path while preserving order
-                    # also determine if it's a shared library or not from
-                    # the given package
                     dll = db["dynamic_libs_map"][out_file_name]
                     dynamic_libs.append(dll)
+                elif out_file_name := match_suffix(
+                    db["opened_file_names"], in_file_name
+                ):
+                    stats["py_out"] += 1
 
                 if (
                     out_file_name is None

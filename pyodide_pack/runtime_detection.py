@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from pyodide_pack.dynamic_lib import DynamicLib
 
@@ -60,10 +61,15 @@ class RuntimeResults(dict):
         db["opened_file_names"] = list(dict.fromkeys(db["opened_file_names"]))
 
         db["dynamic_libs_map"] = {
-            path: DynamicLib(
+            obj["path"]: DynamicLib(
                 obj["path"], shared=obj.get("global", False), load_order=idx
             )
             for idx, obj in enumerate(db["load_dyn_lib_calls"])
-            if path.endswith(".so")
+            if obj["path"].endswith(".so") and obj["path"] in db["dl_accessed_symbols"]
         }
         return db
+
+    def to_json(self, path: Path) -> None:
+        """Save the results.json with runtime execution information."""
+        with open(path, "w") as fh:
+            json.dump(self, fh, indent=2, default=vars)
