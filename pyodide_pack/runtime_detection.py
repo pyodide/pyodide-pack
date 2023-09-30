@@ -1,8 +1,15 @@
 from __future__ import annotations
 
+import fnmatch
+import gzip
 import json
+import os
 from pathlib import Path
 
+from pyodide_pack._utils import (
+    match_suffix,
+)
+from pyodide_pack.archive import ArchiveFile
 from pyodide_pack.dynamic_lib import DynamicLib
 
 
@@ -73,3 +80,77 @@ class RuntimeResults(dict):
         """Save the results.json with runtime execution information."""
         with open(path, "w") as fh:
             json.dump(self, fh, indent=2, default=vars)
+
+
+class PackageBundler:
+    """Only include necessary files for a given package."""
+
+    def __init__(self, db: RuntimeResults, include_paths: str | None = None):
+        self.db = db
+        self.stats = {
+            "py_in": 0,
+            "so_in": 0,
+            "py_out": 0,
+            "so_out": 0,
+            "fh_out": 0,
+            "size_out": 0,
+            "size_gzip_out": 0,
+        }
+        self.dynamic_libs: list[DynamicLib] = []
+        self.include_paths = include_paths
+
+    def process_path(self, in_file_name: str) -> str | None:
+        """Process a path, returning the output path if it should be included."""
+        db = self.db
+        stats = self.stats
+        match Path(in_file_name).suffix:
+            case ".py":
+                stats["py_in"] += 1
+            case ".so":
+                stats["so_in"] += 1
+
+        out_file_name = None
+        if out_file_name := match_suffix(
+            list(db["dl_accessed_symbols"].keys()), in_file_name
+        ):
+            stats["so_out"] += 1
+            # Get the dynamic library path while preserving order
+            dll = db["dynamic_libs_map"][out_file_name]
+            self.dynamic_libs.append(dll)
+        elif out_file_name := match_suffix(db["opened_file_names"], in_file_name):
+            stats["py_out"] += 1
+
+        elif self.include_paths is not None and any(
+            fnmatch.fnmatch(in_file_name, pattern)
+            for pattern in self.include_paths.split(",")
+        ):
+            # TODO: this is hack and should be done better
+            out_file_name = os.path.join("/lib/python3.11/site-utils", in_file_name)
+            match Path(in_file_name).suffix:
+                case ".py":
+                    stats["py_out"] += 1
+                case ".so":
+                    stats["so_out"] += 1
+                    # Manually included dynamic libraries are going to be loaded first
+                    dll = DynamicLib(out_file_name, load_order=-1000)
+                    self.dynamic_libs.append(dll)
+        return out_file_name
+
+    def copy_between_zip_files(
+        self,
+        in_file_name: str,
+        out_file_name: str,
+        archive: ArchiveFile,
+        fh_out,
+    ) -> None:
+        """Copy a file between two archives."""
+        stats = self.stats
+        stats["fh_out"] += 1
+        stream = archive.read(in_file_name)
+        if stream is not None:
+            stats["size_out"] += len(stream)
+            stats["size_gzip_out"] += len(gzip.compress(stream))
+            # File paths starting with / fails to get correctly extracted
+            # in extract_archive in Pyodide
+            with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
+                fh.write(stream)

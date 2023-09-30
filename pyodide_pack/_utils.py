@@ -45,7 +45,7 @@ def match_suffix(file_paths: list[str], suffix: str) -> str | None:
 # Adapted from pyodide conftest.py
 
 
-def run_web_server(q, log_filepath, dist_dir):
+def run_web_server(q: multiprocessing.Queue, log_filepath, dist_dir):
     """Start the HTTP web server
 
     Parameters
@@ -79,7 +79,7 @@ def run_web_server(q, log_filepath, dist_dir):
 
     with socketserver.TCPServer(("", 0), Handler) as httpd:
         host, port = httpd.server_address
-        print(f"Starting webserver at http://{host}:{port}")
+        print(f"Starting webserver at http://{host}:{port}")  # type: ignore[str-bytes-safe]
         httpd.server_name = "test-server"  # type: ignore[attr-defined]
         httpd.server_port = port  # type: ignore[attr-defined]
         q.put(port)
@@ -88,7 +88,7 @@ def run_web_server(q, log_filepath, dist_dir):
 
 
 @contextmanager
-def spawn_web_server(dist_dir):
+def spawn_web_server(dist_dir: str):
     tmp_dir = tempfile.mkdtemp()
     log_path = Path(tmp_dir) / "http-server.log"
     q: multiprocessing.Queue[str] = multiprocessing.Queue()

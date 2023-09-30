@@ -1,7 +1,4 @@
-import fnmatch
-import gzip
 import json
-import os
 import shutil
 import sys
 import zipfile
@@ -16,13 +13,11 @@ from rich.table import Table
 
 from pyodide_pack._utils import (
     _get_packages_from_lockfile,
-    match_suffix,
     spawn_web_server,
 )
 from pyodide_pack.archive import ArchiveFile
-from pyodide_pack.dynamic_lib import DynamicLib
 from pyodide_pack.runners.node import NodeRunner
-from pyodide_pack.runtime_detection import RuntimeResults
+from pyodide_pack.runtime_detection import PackageBundler, RuntimeResults
 
 ROOT_DIR = Path(__file__).parents[1]
 
@@ -109,11 +104,6 @@ def main(
         f"total size of {packages_size_gzip/1e6:.2f} MB  "
         f"(uncompressed: {packages_size/1e6:.2f} MB)"
     )
-    # if db["opened_file_names"]:
-    #    console.print(
-    #        f"In total {len(db['opened_file_names'])} files and "
-    #        f"{len(db['find_object_calls'])} dynamic libraries were accessed."
-    #    )
     total_initial_size = packages_size_gzip + stdlib_archive.total_size(compressed=True)
     console.print(
         f"Total initial size (stdlib + dependencies): {total_initial_size/1e6:.2f} MB"
@@ -154,66 +144,17 @@ def main(
             # Sort keys for reproducibility
             in_file_names = sorted(ar.namelist())
 
-            stats = {
-                "py_in": 0,
-                "so_in": 0,
-                "py_out": 0,
-                "so_out": 0,
-                "fh_out": 0,
-                "size_out": 0,
-                "size_gzip_out": 0,
-            }
+            bundler = PackageBundler(db)
             for in_file_name in in_file_names:
-                match Path(in_file_name).suffix:
-                    case ".py":
-                        stats["py_in"] += 1
-                    case ".so":
-                        stats["so_in"] += 1
-
-                out_file_name = None
-                if out_file_name := match_suffix(
-                    list(db["dl_accessed_symbols"].keys()), in_file_name
-                ):
-                    stats["so_out"] += 1
-                    # Get the dynamic library path while preserving order
-                    dll = db["dynamic_libs_map"][out_file_name]
-                    dynamic_libs.append(dll)
-                elif out_file_name := match_suffix(
-                    db["opened_file_names"], in_file_name
-                ):
-                    stats["py_out"] += 1
-
-                if (
-                    out_file_name is None
-                    and include_paths is not None
-                    and any(
-                        fnmatch.fnmatch(in_file_name, pattern)
-                        for pattern in include_paths.split(",")
-                    )
-                ):
-                    # TODO: this is hack and should be done better
-                    out_file_name = os.path.join(
-                        "/lib/python3.10/site-utils", in_file_name
-                    )
-                    match Path(in_file_name).suffix:
-                        case ".py":
-                            stats["py_out"] += 1
-                        case ".so":
-                            stats["so_out"] += 1
-                            # Manually included dynamic libraries are going to be loaded first
-                            dll = DynamicLib(out_file_name, load_order=-1000)
-                            dynamic_libs.append(dll)
+                out_file_name = bundler.process_path(in_file_name)
 
                 if out_file_name is not None:
-                    stats["fh_out"] += 1
-                    stream = ar.read(in_file_name)
-                    if stream is not None:
-                        stats["size_out"] += len(stream)
-                        stats["size_gzip_out"] += len(gzip.compress(stream))
-                        # File paths starting with / fails to get correctly extracted
-                        # in extract_archive in Pyodide
-                        with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
-                            fh.write(stream)
+                    bundler.copy_between_zip_files(
+                        in_file_name, out_file_name, ar, fh_out
+                    )
+            dynamic_libs.extend(bundler.dynamic_libs)
+
+            stats = bundler.stats
 
             msg_0 = f"{idx+1}"
             msg_1 = ar.file_path.name
