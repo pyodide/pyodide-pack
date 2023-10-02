@@ -7,4 +7,5 @@ async def setup():
 
     for paths in Path("/bundle-so-list.txt").read_text().splitlines():
         path, is_shared = paths.split(",")
+        print(f"Loading {path} as {'shared' if is_shared else 'static'}")
         await _module.API.loadDynlib(path, bool(is_shared))

@@ -90,8 +90,10 @@ class PackageBundler:
         self.stats = {
             "py_in": 0,
             "so_in": 0,
+            "other_in": 0,
             "py_out": 0,
             "so_out": 0,
+            "other_out": 0,
             "fh_out": 0,
             "size_out": 0,
             "size_gzip_out": 0,
@@ -103,11 +105,14 @@ class PackageBundler:
         """Process a path, returning the output path if it should be included."""
         db = self.db
         stats = self.stats
-        match Path(in_file_name).suffix:
+        extension = Path(in_file_name).suffix
+        match extension:
             case ".py":
                 stats["py_in"] += 1
             case ".so":
                 stats["so_in"] += 1
+            case _:
+                stats["other_in"] += 1
 
         out_file_name = None
         if out_file_name := match_suffix(
@@ -118,7 +123,13 @@ class PackageBundler:
             dll = db["dynamic_libs_map"][out_file_name]
             self.dynamic_libs.append(dll)
         elif out_file_name := match_suffix(db["opened_file_names"], in_file_name):
-            stats["py_out"] += 1
+            match extension:
+                case ".so":
+                    out_file_name = None
+                case ".py":
+                    stats["py_out"] += 1
+                case _:
+                    stats["other_out"] += 1
 
         elif self.include_paths is not None and any(
             fnmatch.fnmatch(in_file_name, pattern)
@@ -126,7 +137,7 @@ class PackageBundler:
         ):
             # TODO: this is hack and should be done better
             out_file_name = os.path.join("/lib/python3.11/site-utils", in_file_name)
-            match Path(in_file_name).suffix:
+            match extension:
                 case ".py":
                     stats["py_out"] += 1
                 case ".so":
