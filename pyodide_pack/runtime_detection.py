@@ -72,7 +72,10 @@ class RuntimeResults(dict):
                 obj["path"], shared=obj.get("global", False), load_order=idx
             )
             for idx, obj in enumerate(db["load_dyn_lib_calls"])
-            if obj["path"].endswith(".so") and obj["path"] in db["dl_accessed_symbols"]
+            # Include locally loaded .so by they shared symbols
+            # or if they are globally loaded
+            if obj["path"].endswith(".so")
+            and ((obj["path"] in db["dl_accessed_symbols"]) or obj["global"])
         }
         return db
 
@@ -116,12 +119,13 @@ class PackageBundler:
 
         out_file_name = None
         if out_file_name := match_suffix(
-            list(db["dl_accessed_symbols"].keys()), in_file_name
+            list(db["dynamic_libs_map"].keys()), in_file_name
         ):
             stats["so_out"] += 1
             # Get the dynamic library path while preserving order
             dll = db["dynamic_libs_map"][out_file_name]
             self.dynamic_libs.append(dll)
+
         elif out_file_name := match_suffix(db["opened_file_names"], in_file_name):
             match extension:
                 case ".so":
