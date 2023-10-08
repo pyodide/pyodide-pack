@@ -1,23 +1,94 @@
+function patchFSopen(pyodide, fileList) {
+  // Record FS.open
+  // Note: we can't use FS.trackingDelegate since we want this to work without
+  // -sFS_DEBUG
+  const openOrig = pyodide._module.FS.open;
+  pyodide._module.FS.open = function (path, flags, mode, fd_start, fd_end) {
+    // Read-only flag is even
+    // https://github.com/emscripten-core/emscripten/blob/e8f25f84933a7973ad1a4e32084a8bf169d67d35/tests/fs/test_trackingdelegate.c#L18
+    // Here we only keep files in read mode.
+    if (flags % 2 == 0) {
+      fileList.push(path);
+    }
+    return openOrig(path, flags, mode, fd_start, fd_end);
+  };
+}
+
+
+function pathchLoadDynLib(pyodide, loadDynlibCalls) {
+  // Record loadDynlib calls
+  const loadDynlibOrig = pyodide._module.loadDynamicLibrary;
+  pyodide._module.loadDynamicLibrary = function(libName, flags, localScope, handle) {
+	loadDynlibCalls.push({path: libName, global: flags.global});
+	return loadDynlibOrig(libName, flags, localScope, handle)
+  }
+}
+
+
+function patchSymbolAccess(pyodide, accessedSymbols) {
+  // Record accessed symbols in pyodide._module.LDSO
+  function wrapSym(symName, sym, libName) {
+    if (!sym || typeof sym == "number") {
+      return sym;
+    }
+    return new Proxy(sym, {
+      get(sym, attr) {
+        if (attr === "stub") {
+          if (!(libName in accessedSymbols)) {
+            accessedSymbols[libName] = new Set();
+          }
+          accessedSymbols[libName].add(symName);
+        }
+        return Reflect.get(sym, attr);
+      },
+    });
+  }
+
+  function wrapExports(exports, libName) {
+    if (typeof exports !== "object") {
+      return exports;
+    }
+    return new Proxy(exports, {
+      get(exports, symName) {
+        const sym = Reflect.get(exports, symName);
+        if (libName in accessedSymbols &&  accessedSymbols[libName].has(symName)) {
+          return sym;
+        }
+        return wrapSym(symName, sym, libName);
+      },
+    });
+  }
+
+  function wrapLib(lib, libName) {
+    return new Proxy(lib, {
+      get(lib, sym) {
+        return wrapExports(Reflect.get(lib, sym), libName);
+      },
+    });
+  }
+  origLoadedlibs = pyodide._module.LDSO.loadedLibsByName;
+  pyodide._module.LDSO.loadedLibsByName = new Proxy(origLoadedlibs, {
+    set(libsByName, libName, lib) {
+      return Reflect.set(libsByName, libName, wrapLib(lib, libName));
+    },
+  });
+}
+
 
 async function main() {
   const { loadPyodide } = require("pyodide");
   let fs = await import("fs");
 
   let pyodide = await loadPyodide()
-  let file_list = [];
-  const open_orig = pyodide._module.FS.open;
-  // Monkeypatch FS.open
-  // Note: we can't use FS.trackingDelegate since we want this to work without
-  // -sFS_DEBUG
-  pyodide._module.FS.open = function (path, flags, mode, fd_start, fd_end) {
-    // Read-only flag is even
-    // https://github.com/emscripten-core/emscripten/blob/e8f25f84933a7973ad1a4e32084a8bf169d67d35/tests/fs/test_trackingdelegate.c#L18
-    // Here we only keep files in read mode.
-    if (flags % 2 == 0) {
-      file_list.push(path);
-    }
-    return open_orig(path, flags, mode, fd_start, fd_end);
-  };
+  let fileList = [];
+  patchFSopen(pyodide, fileList);
+
+  let loadDynlibCalls = [];
+  pathchLoadDynLib(pyodide, loadDynlibCalls);
+
+  var accessedSymbols = new Object();
+  patchSymbolAccess(pyodide, accessedSymbols);
+
 
   try {
   	await pyodide.loadPackage({{packages}});
@@ -28,27 +99,33 @@ async function main() {
 	await micropip.install({{packages}});
   }
 
-  // Monkeypatching findObject calls used in dlopen
-  let findObjectCalls = [];
-  const findObject_orig = pyodide._module.FS.findObject;
-  pyodide._module.FS.findObject = function(path, dontResolveLastLink) {
-	findObjectCalls.push(path);
-	return findObject_orig(path, dontResolveLastLink);
-  }
   await pyodide.runPythonAsync(`
 {{ code }}
+`);
+  // Run code used in the loader
+  await pyodide.runPythonAsync(`
+import pyodide.http
 `);
   // Look for loaded modules. That's the only way to access imported stdlib from the zipfile.
   let sysModules = pyodide.runPython(
 	"import sys; {name: getattr(mod, '__file__', None) for name, mod in sys.modules.items()}"
   ).toJs({dict_converter : Object.fromEntries});
 
+  // Convert accessedSymbols to from Set to Array, so it can be serialized
+  accessedSymbolsOut = new Object();
+  for (const libName in accessedSymbols) {
+     accessedSymbolsOut[libName] = Array.from(accessedSymbols[libName]);
+  }
+
   // writing the list of accessed files to disk
-  var obj = new Object();
-  obj.opened_file_names = file_list;
-  obj.loaded_packages = pyodide.loadedPackages;
-  obj.find_object_calls = findObjectCalls;
-  obj.sys_modules = sysModules;
+  var obj = {
+	opened_file_names: fileList,
+	loaded_packages: pyodide.loadedPackages,
+	load_dyn_lib_calls: loadDynlibCalls,
+	sys_modules: sysModules,
+	LDSO_loaded_libs_by_handle: pyodide._module.LDSO['loadedLibsByHandle'],
+	dl_accessed_symbols: accessedSymbolsOut,
+  };
   if ("micropip" in pyodide.loadedPackages) {
     obj.pyodide_lock = pyodide.pyimport("micropip").freeze();
   }
