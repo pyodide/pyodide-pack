@@ -12,16 +12,7 @@ def gen_all_examples():
     for path in Path("examples").glob("*"):
         if path.is_dir() and (path / "requirements.txt").exists():
             path = path.resolve()
-            if path.name in ["scikit-learn", "scipy"]:
-                yield pytest.param(
-                    path,
-                    marks=pytest.mark.xfail(
-                        reason="Known issue with .so loading in scipy"
-                    ),
-                    id=path.name,
-                )
-            else:
-                yield pytest.param(path, id=path.name)
+            yield pytest.param(path, id=path.name)
 
 
 BASE_DIR = Path(__file__).parents[1]
