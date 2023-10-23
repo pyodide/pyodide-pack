@@ -7,6 +7,8 @@ from time import perf_counter
 
 import typer
 
+from pyodide_pack.config import PyPackConfig
+
 
 class _StripDocstringsTransformer(ast.NodeTransformer):
     """Strip docstring in an AST tree.
@@ -41,16 +43,39 @@ def _strip_module_docstring(tree: ast.Module) -> ast.Module:
     return tree
 
 
+def _rewrite_py_code(code: str, py_config: PyPackConfig):
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return None
+    if py_config.strip_docstrings:
+        tree = _strip_module_docstring(tree)
+    if py_config.strip_module_docstrings:
+        tree = _StripDocstringsTransformer().visit(tree)
+
+    uncommented_code = ast.unparse(tree)
+    return uncommented_code
+
+
 def main(
     input_dir: Path = typer.Argument(..., help="Path to the folder to compress"),
     strip_docstrings: bool = typer.Option(False, help="Strip docstrings"),
+    strip_module_docstrings: bool = typer.Option(
+        False, help="Strip module lebel docstrings"
+    ),
+    # py_compile: bool = typer.Option(False, help="py-compile files")
 ) -> None:
     """Minify a folder of Python files.
 
     Note: this API will change before the next release
     """
     output_dirname = input_dir.name + "_stripped"
-    if strip_docstrings:
+    py_config = PyPackConfig(
+        strip_docstrings=strip_docstrings,
+        strip_module_docstrings=strip_module_docstrings,
+        py_compile=False,
+    )
+    if py_config.strip_docstrings:
         output_dirname += "_no_docstrings"
     output_dir = input_dir.parent / output_dirname
     shutil.rmtree(output_dir, ignore_errors=True)
@@ -65,16 +90,11 @@ def main(
             code = file.read_text()
         except UnicodeDecodeError:
             continue
+        uncommented_code = _rewrite_py_code(code)
 
-        try:
-            tree = ast.parse(code)
-        except SyntaxError:
+        if uncommented_code is None:
             continue
-        if strip_docstrings:
-            tree = _strip_module_docstring(tree)
-            tree = _StripDocstringsTransformer().visit(tree)
 
-        uncommented_code = ast.unparse(tree)
         file.write_text(uncommented_code)
         n_processed += 1
 

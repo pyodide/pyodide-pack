@@ -10,6 +10,7 @@ from pyodide_pack._utils import (
     match_suffix,
 )
 from pyodide_pack.archive import ArchiveFile
+from pyodide_pack.config import PackConfig
 from pyodide_pack.dynamic_lib import DynamicLib
 
 
@@ -88,8 +89,9 @@ class RuntimeResults(dict):
 class PackageBundler:
     """Only include necessary files for a given package."""
 
-    def __init__(self, db: RuntimeResults, include_paths: str | None = None):
+    def __init__(self, db: RuntimeResults, config: PackConfig):
         self.db = db
+        self.config = config
         self.stats = {
             "py_in": 0,
             "so_in": 0,
@@ -102,7 +104,6 @@ class PackageBundler:
             "size_gzip_out": 0,
         }
         self.dynamic_libs: list[DynamicLib] = []
-        self.include_paths = include_paths
 
     def process_path(self, in_file_name: str) -> str | None:
         """Process a path, returning the output path if it should be included."""
@@ -135,7 +136,7 @@ class PackageBundler:
                 case _:
                     stats["other_out"] += 1
 
-        elif self.include_paths is not None and any(
+        elif self.config.include_paths is not None and any(
             fnmatch.fnmatch(in_file_name, pattern)
             for pattern in self.include_paths.split(",")
         ):

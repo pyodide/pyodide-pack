@@ -6,6 +6,7 @@ from pathlib import Path
 from time import perf_counter
 
 import typer
+from pydantic import parse_obj_as
 from pyodide_lock import PyodideLockSpec
 from rich.console import Console
 from rich.live import Live
@@ -16,6 +17,7 @@ from pyodide_pack._utils import (
     spawn_web_server,
 )
 from pyodide_pack.archive import ArchiveFile
+from pyodide_pack.config import PackConfig, _find_pyproject_toml, _get_config_section
 from pyodide_pack.runners.node import NodeRunner
 from pyodide_pack.runtime_detection import PackageBundler, RuntimeResults
 
@@ -29,6 +31,11 @@ def main(
     ),
     verbose: bool = typer.Option(
         False, "-v", help="Increase verbosity (currently ignored)"
+    ),
+    config_path: Path = typer.Option(
+        None,
+        "--config",
+        help="Path to the pyproject.toml with the tool.pyodide_pack section",
     ),
     include_paths: str = typer.Option(
         None,
@@ -51,25 +58,46 @@ def main(
         f"Running [bold]pyodide pack[/bold] on [bold]{example_path}[/bold] in Node.js"
     )
 
-    if requirement_path is None:
-        requirement_path = example_path.parent / "requirements.txt"
-        if not requirement_path.exists():
+    if config_path is not None:
+        if not config_path.exists():
+            console.print(f"config {config_path} does not exist")
+            sys.exit(1)
+        config_data = _get_config_section(config_path)
+        if config_data is None:
             console.print(
-                f"Error: could not find requirements.txt in {example_path.parent}"
+                f"could not find the [tool.pyodide_pack] section in " f"{config_path}"
             )
             sys.exit(1)
+        config = parse_obj_as(PackConfig, config_data)
+    else:
+        config_path = _find_pyproject_toml(example_path.parent)
+        if config_path is None:
+            console.print(
+                "Could not find pyproject.toml, falling back to "
+                "defaults modified by CLI arguments"
+            )
+            config = PackConfig()
+        else:
+            config_data = _get_config_section(config_path)
+            if config_data is None:
+                console.print(
+                    "Could not find [tool.pyodide_pack] section in"
+                    f"{config_path}, falling back to "
+                    "defaults modified by CLI arguments"
+                )
+                config = PackConfig()
+            else:
+                config = parse_obj_as(PackConfig, config_data)
 
     console.print(
         "\n[bold]Note:[/bold] unless otherwise specified all sizes are given "
         "for gzip compressed files to be representative of CDN compression.\n"
     )
-    requirements = requirement_path.read_text().splitlines()
-    console.print(f"Loaded requirements from: {requirement_path}")
     code = example_path.read_text()
 
     js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "discovery.js"
     js_template_kwargs = dict(
-        code=code, packages=requirements, output_path="results.json"
+        code=code, packages=config.requires, output_path="results.json"
     )
     with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
         t0 = perf_counter()
@@ -144,7 +172,7 @@ def main(
             # Sort keys for reproducibility
             in_file_names = sorted(ar.namelist())
 
-            bundler = PackageBundler(db)
+            bundler = PackageBundler(db, config=config)
             for in_file_name in in_file_names:
                 out_file_name = bundler.process_path(in_file_name)
 
