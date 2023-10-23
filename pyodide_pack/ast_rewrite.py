@@ -90,7 +90,7 @@ def main(
             code = file.read_text()
         except UnicodeDecodeError:
             continue
-        uncommented_code = _rewrite_py_code(code)
+        uncommented_code = _rewrite_py_code(code, py_config=py_config)
 
         if uncommented_code is None:
             continue

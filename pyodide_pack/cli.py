@@ -26,9 +26,6 @@ ROOT_DIR = Path(__file__).parents[1]
 
 def main(
     example_path: Path,
-    requirement_path: Path = typer.Option(
-        None, "-r", help="Path to the requirements.txt file"
-    ),
     verbose: bool = typer.Option(
         False, "-v", help="Increase verbosity (currently ignored)"
     ),
@@ -88,6 +85,8 @@ def main(
                 config = PackConfig()
             else:
                 config = parse_obj_as(PackConfig, config_data)
+    if include_paths is not None:
+        config.include_paths = include_paths.split(",")
 
     console.print(
         "\n[bold]Note:[/bold] unless otherwise specified all sizes are given "

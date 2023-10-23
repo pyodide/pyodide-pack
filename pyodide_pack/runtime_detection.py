@@ -138,7 +138,7 @@ class PackageBundler:
 
         elif self.config.include_paths is not None and any(
             fnmatch.fnmatch(in_file_name, pattern)
-            for pattern in self.include_paths.split(",")
+            for pattern in self.config.include_paths
         ):
             # TODO: this is hack and should be done better
             out_file_name = os.path.join("/lib/python3.11/site-utils", in_file_name)

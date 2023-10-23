@@ -9,7 +9,7 @@ try:
     import tomllib
 except ImportError:
     # Python <3.11
-    import tomli as tomllib
+    import tomli as tomllib  # type: ignore[no-redef]
 
 
 def _find_pyproject_toml(input_path: Path) -> Path | None:
@@ -40,7 +40,7 @@ def _get_config_section(path: Path) -> dict[str, Any] | None:
 
 
 class PyPackConfig(BaseModel):
-    """Configuration for hanlding Python files"""
+    """Configuration for handling Python files"""
 
     strip_module_docstrings: bool = True
     strip_docstrings: bool = True
