@@ -20,6 +20,7 @@ class _StripDocstringsTransformer(ast.NodeTransformer):
         """Remove the docstring from the function definition"""
         if ast.get_docstring(node, clean=False) is not None:
             del node.body[0]
+
         # Continue processing the function's body
         self.generic_visit(node)
         return node
@@ -43,17 +44,21 @@ def _strip_module_docstring(tree: ast.Module) -> ast.Module:
     return tree
 
 
-def _rewrite_py_code(code: str, py_config: PyPackConfig):
+def _rewrite_py_code(code: str, file_name: str, py_config: PyPackConfig):
     try:
         tree = ast.parse(code)
     except SyntaxError:
         return None
-    if py_config.strip_docstrings:
-        tree = _strip_module_docstring(tree)
-    if py_config.strip_module_docstrings:
-        tree = _StripDocstringsTransformer().visit(tree)
+    try:
+        if py_config.strip_docstrings:
+            tree = _strip_module_docstring(tree)
+        if py_config.strip_module_docstrings:
+            tree = _StripDocstringsTransformer().visit(tree)
+        uncommented_code = ast.unparse(tree)
+    except RecursionError:
+        print(f"Skipping AST rewrite for {file_name} due to RecursionError")
+        uncommented_code = code
 
-    uncommented_code = ast.unparse(tree)
     return uncommented_code
 
 
@@ -90,7 +95,9 @@ def main(
             code = file.read_text()
         except UnicodeDecodeError:
             continue
-        uncommented_code = _rewrite_py_code(code, py_config=py_config)
+        uncommented_code = _rewrite_py_code(
+            code, file_name=str(file), py_config=py_config
+        )
 
         if uncommented_code is None:
             continue

@@ -175,11 +175,19 @@ def main(
             bundler = PackageBundler(db, config=config)
             for in_file_name in in_file_names:
                 out_file_name = bundler.process_path(in_file_name)
+                if out_file_name is None:
+                    continue
+                in_stream = ar.read(in_file_name)
+                if in_stream is None:
+                    continue
+                out_stream = bundler.process_content(in_file_name, in_stream)
+                if out_stream is None:
+                    continue
+                # File paths starting with / fails to get correctly extracted
+                # in extract_archive in Pyodide
+                with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
+                    fh.write(out_stream)
 
-                if out_file_name is not None:
-                    bundler.copy_between_zip_files(
-                        in_file_name, out_file_name, ar, fh_out
-                    )
             dynamic_libs.extend(bundler.dynamic_libs)
 
             stats = bundler.stats

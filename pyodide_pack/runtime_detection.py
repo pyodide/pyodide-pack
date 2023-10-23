@@ -9,7 +9,7 @@ from pathlib import Path
 from pyodide_pack._utils import (
     match_suffix,
 )
-from pyodide_pack.archive import ArchiveFile
+from pyodide_pack.ast_rewrite import _rewrite_py_code
 from pyodide_pack.config import PackConfig
 from pyodide_pack.dynamic_lib import DynamicLib
 
@@ -152,21 +152,19 @@ class PackageBundler:
                     self.dynamic_libs.append(dll)
         return out_file_name
 
-    def copy_between_zip_files(
-        self,
-        in_file_name: str,
-        out_file_name: str,
-        archive: ArchiveFile,
-        fh_out,
-    ) -> None:
-        """Copy a file between two archives."""
+    def process_content(self, in_file_name: str, content: bytes) -> bytes | None:
+        """Process both the input filename and the file contents"""
         stats = self.stats
         stats["fh_out"] += 1
-        stream = archive.read(in_file_name)
-        if stream is not None:
-            stats["size_out"] += len(stream)
-            stats["size_gzip_out"] += len(gzip.compress(stream))
-            # File paths starting with / fails to get correctly extracted
-            # in extract_archive in Pyodide
-            with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
-                fh.write(stream)
+
+        extension = Path(in_file_name).suffix
+        out_content = content
+        if extension == ".py":
+            print(in_file_name)
+            out_content = _rewrite_py_code(
+                content.decode(), file_name=in_file_name, py_config=self.config.py
+            ).encode()
+        stats["size_out"] += len(out_content)
+        stats["size_gzip_out"] += len(gzip.compress(out_content))
+
+        return out_content
