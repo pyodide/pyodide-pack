@@ -85,6 +85,7 @@ def main(
                 config = PackConfig()
             else:
                 config = parse_obj_as(PackConfig, config_data)
+                console.print(f"Loaded config from {config_path}")
     if include_paths is not None:
         config.include_paths = include_paths.split(",")
 

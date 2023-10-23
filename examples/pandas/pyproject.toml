@@ -1,2 +1,2 @@
 [tool.pyodide_pack]
-requirements = ["pandas"]
+requires = ["pandas"]
