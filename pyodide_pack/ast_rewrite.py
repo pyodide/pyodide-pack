@@ -20,6 +20,9 @@ class _StripDocstringsTransformer(ast.NodeTransformer):
         """Remove the docstring from the function definition"""
         if ast.get_docstring(node, clean=False) is not None:
             del node.body[0]
+            if not len(node.body):
+                # Nothing left in the body, add a pass statement
+                node.body.append(ast.Pass())
 
         # Continue processing the function's body
         self.generic_visit(node)
