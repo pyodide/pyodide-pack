@@ -9,7 +9,9 @@ from time import perf_counter
 import typer
 
 STRIP_DOCSTRING_EXCLUDES: list[str] = []
-STRIP_DOCSTRING_MODULE_EXCLUDES: list[str] = ["numpy/*"]
+STRIP_DOCSTRING_MODULE_EXCLUDES: list[str] = [
+    "numpy/*"  # known issue for v1.25 to double check for v1.26
+]
 
 
 class _StripDocstringsTransformer(ast.NodeTransformer):
