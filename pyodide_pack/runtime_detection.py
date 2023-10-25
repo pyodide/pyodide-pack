@@ -160,7 +160,6 @@ class PackageBundler:
         extension = Path(in_file_name).suffix
         out_content = content
         if extension == ".py":
-            print(in_file_name)
             out_content = _rewrite_py_code(
                 content.decode(), file_name=in_file_name, py_config=self.config.py
             ).encode()

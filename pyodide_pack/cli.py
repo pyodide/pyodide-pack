@@ -149,13 +149,27 @@ def main(
     table.add_column("Reduction", justify="right")
 
     dynamic_libs = []
-    with zipfile.ZipFile(
-        out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
-    ) as fh_out, Live(table) as live:
-        imported_paths = db.get_imported_paths(strip_prefix=db.stdlib_prefix)
-        stdlib_archive_stripped = stdlib_archive.filter_to_zip(
-            stdlib_stripped_path, func=lambda name: name in imported_paths
-        )
+    with Live(table) as live:
+        with zipfile.ZipFile(
+            stdlib_stripped_path, "w", compression=zipfile.ZIP_DEFLATED
+        ) as fh_out:
+            imported_paths = db.get_imported_paths(strip_prefix=db.stdlib_prefix)
+            in_file_names = sorted(stdlib_archive.namelist())
+            bundler = PackageBundler(db, config=config)
+            for in_file_name in in_file_names:
+                if in_file_name not in imported_paths:
+                    continue
+                in_stream = stdlib_archive.read(in_file_name)
+                if in_stream is None:
+                    continue
+                out_stream = bundler.process_content(in_file_name, in_stream)
+                if out_stream is None:
+                    continue
+                # File paths starting with / fails to get correctly extracted
+                # in extract_archive in Pyodide
+                with fh_out.open(in_file_name.lstrip("/"), "w") as fh:
+                    fh.write(out_stream)
+        stdlib_archive_stripped = ArchiveFile(stdlib_stripped_path, name="stdlib")
 
         msg_0 = "0"
         msg_1 = "stdlib"
@@ -168,46 +182,51 @@ def main(
         msg_5 = f"{100*(1 - stdlib_archive_stripped.total_size(compressed=True) / stdlib_archive.total_size(compressed=True)):.1f} %"
         table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5)
         live.refresh()
-        for idx, ar in enumerate(sorted(packages.values(), key=lambda x: x.name)):
-            # Sort keys for reproducibility
-            in_file_names = sorted(ar.namelist())
+        with zipfile.ZipFile(
+            out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
+        ) as fh_out:
+            for idx, ar in enumerate(sorted(packages.values(), key=lambda x: x.name)):
+                # Sort keys for reproducibility
+                in_file_names = sorted(ar.namelist())
 
-            bundler = PackageBundler(db, config=config)
-            for in_file_name in in_file_names:
-                out_file_name = bundler.process_path(in_file_name)
-                if out_file_name is None:
-                    continue
-                in_stream = ar.read(in_file_name)
-                if in_stream is None:
-                    continue
-                out_stream = bundler.process_content(in_file_name, in_stream)
-                if out_stream is None:
-                    continue
-                # File paths starting with / fails to get correctly extracted
-                # in extract_archive in Pyodide
-                with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
-                    fh.write(out_stream)
+                bundler = PackageBundler(db, config=config)
+                for in_file_name in in_file_names:
+                    out_file_name = bundler.process_path(in_file_name)
+                    if out_file_name is None:
+                        continue
+                    in_stream = ar.read(in_file_name)
+                    if in_stream is None:
+                        continue
+                    out_stream = bundler.process_content(in_file_name, in_stream)
+                    if out_stream is None:
+                        continue
+                    # File paths starting with / fails to get correctly extracted
+                    # in extract_archive in Pyodide
+                    with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
+                        fh.write(out_stream)
 
-            dynamic_libs.extend(bundler.dynamic_libs)
+                dynamic_libs.extend(bundler.dynamic_libs)
 
-            stats = bundler.stats
+                stats = bundler.stats
 
-            msg_0 = f"{idx+1}"
-            msg_1 = ar.file_path.name
-            msg_2 = f"{len(in_file_names)} [red]→[/red] {stats['fh_out']}"
-            msg_3 = f"{stats['so_in']} [red]→[/red] {stats['so_out']}"
-            msg_4 = f"{ar.total_size(compressed=True) / 1e6:.2f} [red]→[/red] {stats['size_gzip_out']/1e6:.2f}"
-            msg_5 = f"{100*(1 - stats['size_gzip_out'] / ar.total_size(compressed=True)):.1f} %"
-            table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5)
-            live.refresh()
+                msg_0 = f"{idx+1}"
+                msg_1 = ar.file_path.name
+                msg_2 = f"{len(in_file_names)} [red]→[/red] {stats['fh_out']}"
+                msg_3 = f"{stats['so_in']} [red]→[/red] {stats['so_out']}"
+                msg_4 = f"{ar.total_size(compressed=True) / 1e6:.2f} [red]→[/red] {stats['size_gzip_out']/1e6:.2f}"
+                msg_5 = f"{100*(1 - stats['size_gzip_out'] / ar.total_size(compressed=True)):.1f} %"
+                table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5)
+                live.refresh()
 
-        # Write the list of .so libraries to pre-load
-        with fh_out.open("bundle-so-list.txt", "w") as fh:
-            for so in sorted(dynamic_libs):
-                fh.write(f"{so.path},{so.shared}\n".encode())
-        with fh_out.open("home/pyodide/pyodide_pack_loader.py", "w") as fh:
-            loader_path = Path(__file__).parent / "loader" / "pyodide_pack_loader.py"
-            fh.write(loader_path.read_text().encode("utf-8"))
+            # Write the list of .so libraries to pre-load
+            with fh_out.open("bundle-so-list.txt", "w") as fh:
+                for so in sorted(dynamic_libs):
+                    fh.write(f"{so.path},{so.shared}\n".encode())
+            with fh_out.open("home/pyodide/pyodide_pack_loader.py", "w") as fh:
+                loader_path = (
+                    Path(__file__).parent / "loader" / "pyodide_pack_loader.py"
+                )
+                fh.write(loader_path.read_text().encode("utf-8"))
 
     out_bundle_size = out_bundle_path.stat().st_size
     if packages_size_gzip:

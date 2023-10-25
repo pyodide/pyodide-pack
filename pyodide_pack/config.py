@@ -42,8 +42,8 @@ def _get_config_section(path: Path) -> dict[str, Any] | None:
 class PyPackConfig(BaseModel, extra=Extra.forbid):  # type: ignore[call-arg]
     """Configuration for handling Python files"""
 
-    strip_module_docstrings: bool = False
-    strip_docstrings: bool = False
+    strip_module_docstrings: bool = True
+    strip_docstrings: bool = True
     py_compile: bool = False
 
 
