@@ -88,6 +88,24 @@ def test_strip_docstrings_class():
     )
 
 
+def test_strip_docstrings_empty_function():
+    src_code = '''
+        def foo():
+            """This is a docstring"""
+        '''
+    tree = ast.parse(dedent(src_code))
+    tree = _StripDocstringsTransformer().visit(tree)
+    assert (
+        ast.unparse(tree)
+        == dedent(
+            """
+        def foo():
+            pass
+        """
+        ).strip("\n")
+    )
+
+
 def test_strip_module_docstrings():
     src_code = '''
         """This is a docstring"""
@@ -126,7 +144,7 @@ def test_cli_minify(tmp_path):
     input_dir.mkdir()
     (input_dir / "pathlib.py").write_text(Path(pathlib.__file__).read_text())
 
-    main(input_dir, strip_docstrings=False)
+    main(input_dir, strip_docstrings=False, strip_module_docstrings=False)
     output_path = tmp_path / "input_dir_stripped.zip"
     assert output_path.exists()
     # There is at least a 10% size reduction, though this test and API needs to be rewritten
