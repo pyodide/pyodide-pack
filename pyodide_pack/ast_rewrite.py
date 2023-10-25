@@ -1,4 +1,5 @@
 import ast
+import fnmatch
 import shutil
 import sys
 import zipfile
@@ -6,6 +7,11 @@ from pathlib import Path
 from time import perf_counter
 
 import typer
+
+STRIP_DOCSTRING_EXCLUDES: list[str] = []
+STRIP_DOCSTRING_MODULE_EXCLUDES: list[str] = [
+    "numpy/*"  # known issue for v1.25 to double check for v1.26
+]
 
 
 class _StripDocstringsTransformer(ast.NodeTransformer):
@@ -18,12 +24,24 @@ class _StripDocstringsTransformer(ast.NodeTransformer):
         """Remove the docstring from the function definition"""
         if ast.get_docstring(node, clean=False) is not None:
             del node.body[0]
+            if not len(node.body):
+                # Nothing left in the body, add a pass statement
+                node.body.append(ast.Pass())
+
         # Continue processing the function's body
         self.generic_visit(node)
         return node
 
     visit_AsyncFunctionDef = visit_FunctionDef
     visit_ClassDef = visit_FunctionDef
+
+
+def _path_matches_patterns(path: str, patterns: list[str]) -> bool:
+    """Check if a path matches any of the patterns."""
+    for pattern in patterns:
+        if fnmatch.fnmatch(path, pattern):
+            return True
+    return False
 
 
 def _strip_module_docstring(tree: ast.Module) -> ast.Module:
@@ -41,9 +59,42 @@ def _strip_module_docstring(tree: ast.Module) -> ast.Module:
     return tree
 
 
+def _rewrite_py_code(
+    code: str,
+    file_name: str,
+    strip_docstrings: bool = False,
+    strip_module_docstrings: bool = False,
+) -> str:
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return code
+    try:
+        if strip_docstrings and not _path_matches_patterns(
+            file_name, STRIP_DOCSTRING_EXCLUDES
+        ):
+            tree = _strip_module_docstring(tree)
+        if strip_module_docstrings and not _path_matches_patterns(
+            file_name, STRIP_DOCSTRING_MODULE_EXCLUDES
+        ):
+            tree = _StripDocstringsTransformer().visit(tree)
+        uncommented_code = ast.unparse(tree)
+    except RecursionError:
+        # Some files (e.g. modules in sympy) produce a recursion error when running
+        # the node transformer on them
+        print(f"Skipping AST rewrite for {file_name} due to RecursionError")
+        uncommented_code = code
+
+    return uncommented_code
+
+
 def main(
     input_dir: Path = typer.Argument(..., help="Path to the folder to compress"),
     strip_docstrings: bool = typer.Option(False, help="Strip docstrings"),
+    strip_module_docstrings: bool = typer.Option(
+        False, help="Strip module lebel docstrings"
+    ),
+    # py_compile: bool = typer.Option(False, help="py-compile files")
 ) -> None:
     """Minify a folder of Python files.
 
@@ -65,16 +116,16 @@ def main(
             code = file.read_text()
         except UnicodeDecodeError:
             continue
+        uncommented_code = _rewrite_py_code(
+            code,
+            file_name=str(file),
+            strip_docstrings=strip_docstrings,
+            strip_module_docstrings=strip_module_docstrings,
+        )
 
-        try:
-            tree = ast.parse(code)
-        except SyntaxError:
+        if uncommented_code is None:
             continue
-        if strip_docstrings:
-            tree = _strip_module_docstring(tree)
-            tree = _StripDocstringsTransformer().visit(tree)
 
-        uncommented_code = ast.unparse(tree)
         file.write_text(uncommented_code)
         n_processed += 1
 

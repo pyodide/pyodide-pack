@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
  - Add support for packages installed via micropip in `pyodide pack`
    [#31](https://github.com/pyodide/pyodide-pack/pull/31)
 
+## Fixed
+
+ - Fix a syntax error when stripping docstrings from a function with an empty body
+   [#35](https://github.com/pyodide/pyodide-pack/pull/35)
+
 
 ### Changed
 
