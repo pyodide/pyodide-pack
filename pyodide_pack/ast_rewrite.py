@@ -1,4 +1,5 @@
 import ast
+import fnmatch
 import shutil
 import sys
 import zipfile
@@ -8,6 +9,11 @@ from time import perf_counter
 import typer
 
 from pyodide_pack.config import PyPackConfig
+
+STRIP_DOCSTRING_EXCLUDES: list[str] = []
+STRIP_DOCSTRING_MODULE_EXCLUDES: list[str] = [
+    "numpy/*"  # known issue for v1.25 to double check for v1.26
+]
 
 
 class _StripDocstringsTransformer(ast.NodeTransformer):
@@ -32,6 +38,14 @@ class _StripDocstringsTransformer(ast.NodeTransformer):
     visit_ClassDef = visit_FunctionDef
 
 
+def _path_matches_patterns(path: str, patterns: list[str]) -> bool:
+    """Check if a path matches any of the patterns."""
+    for pattern in patterns:
+        if fnmatch.fnmatch(path, pattern):
+            return True
+    return False
+
+
 def _strip_module_docstring(tree: ast.Module) -> ast.Module:
     """Remove docstring from module.
 
@@ -47,15 +61,23 @@ def _strip_module_docstring(tree: ast.Module) -> ast.Module:
     return tree
 
 
-def _rewrite_py_code(code: str, file_name: str, py_config: PyPackConfig):
+def _rewrite_py_code(
+    code: str,
+    file_name: str,
+    py_config: PyPackConfig,
+) -> str:
     try:
         tree = ast.parse(code)
     except SyntaxError:
-        return None
+        return code
     try:
-        if py_config.strip_docstrings:
+        if py_config.strip_docstrings and not _path_matches_patterns(
+            file_name, STRIP_DOCSTRING_EXCLUDES
+        ):
             tree = _strip_module_docstring(tree)
-        if py_config.strip_module_docstrings:
+        if py_config.strip_module_docstrings and not _path_matches_patterns(
+            file_name, STRIP_DOCSTRING_MODULE_EXCLUDES
+        ):
             tree = _StripDocstringsTransformer().visit(tree)
         uncommented_code = ast.unparse(tree)
     except RecursionError:
