@@ -59,6 +59,8 @@ def _rewrite_py_code(code: str, file_name: str, py_config: PyPackConfig):
             tree = _StripDocstringsTransformer().visit(tree)
         uncommented_code = ast.unparse(tree)
     except RecursionError:
+        # Some files (e.g. modules in sympy) produce a recursion error when running
+        # the node transformer on them
         print(f"Skipping AST rewrite for {file_name} due to RecursionError")
         uncommented_code = code
 

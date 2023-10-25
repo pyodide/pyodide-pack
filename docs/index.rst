@@ -23,3 +23,4 @@ Each of these approaches have different tradeoffs, and can be used separately or
    ast-rewrite.md
    module-elimination-at-runtime.md
    cli.md
+   configuration.md
