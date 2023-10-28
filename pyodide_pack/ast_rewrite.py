@@ -8,6 +8,8 @@ from time import perf_counter
 
 import typer
 
+from pyodide_pack.config import PyPackConfig
+
 STRIP_DOCSTRING_EXCLUDES: list[str] = []
 STRIP_DOCSTRING_MODULE_EXCLUDES: list[str] = [
     "numpy/*"  # known issue for v1.25 to double check for v1.26
@@ -62,19 +64,18 @@ def _strip_module_docstring(tree: ast.Module) -> ast.Module:
 def _rewrite_py_code(
     code: str,
     file_name: str,
-    strip_docstrings: bool = False,
-    strip_module_docstrings: bool = False,
+    py_config: PyPackConfig,
 ) -> str:
     try:
         tree = ast.parse(code)
     except SyntaxError:
         return code
     try:
-        if strip_docstrings and not _path_matches_patterns(
+        if py_config.strip_docstrings and not _path_matches_patterns(
             file_name, STRIP_DOCSTRING_EXCLUDES
         ):
             tree = _strip_module_docstring(tree)
-        if strip_module_docstrings and not _path_matches_patterns(
+        if py_config.strip_module_docstrings and not _path_matches_patterns(
             file_name, STRIP_DOCSTRING_MODULE_EXCLUDES
         ):
             tree = _StripDocstringsTransformer().visit(tree)
@@ -101,7 +102,12 @@ def main(
     Note: this API will change before the next release
     """
     output_dirname = input_dir.name + "_stripped"
-    if strip_docstrings:
+    py_config = PyPackConfig(
+        strip_docstrings=strip_docstrings,
+        strip_module_docstrings=strip_module_docstrings,
+        py_compile=False,
+    )
+    if py_config.strip_docstrings:
         output_dirname += "_no_docstrings"
     output_dir = input_dir.parent / output_dirname
     shutil.rmtree(output_dir, ignore_errors=True)
@@ -117,10 +123,7 @@ def main(
         except UnicodeDecodeError:
             continue
         uncommented_code = _rewrite_py_code(
-            code,
-            file_name=str(file),
-            strip_docstrings=strip_docstrings,
-            strip_module_docstrings=strip_module_docstrings,
+            code, file_name=str(file), py_config=py_config
         )
 
         if uncommented_code is None:

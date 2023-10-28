@@ -10,7 +10,7 @@ from pyodide_pack import cli
 
 def gen_all_examples():
     for path in Path("examples").glob("*"):
-        if path.is_dir() and (path / "requirements.txt").exists():
+        if path.is_dir() and (path / "pyproject.toml").exists():
             path = path.resolve()
             yield pytest.param(path, id=path.name)
 
@@ -29,7 +29,7 @@ def test_all(example_dir, tmp_path):
     with redirect_stdout(stdout):
         cli.main(
             example_path=example_dir / "app.py",
-            requirement_path=example_dir / "requirements.txt",
+            config_path=None,
             verbose=False,
             include_paths=None,
             write_debug_map=True,

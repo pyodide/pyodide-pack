@@ -6,6 +6,7 @@ from pathlib import Path
 from time import perf_counter
 
 import typer
+from pydantic import parse_obj_as
 from pyodide_lock import PyodideLockSpec
 from rich.console import Console
 from rich.live import Live
@@ -16,6 +17,7 @@ from pyodide_pack._utils import (
     spawn_web_server,
 )
 from pyodide_pack.archive import ArchiveFile
+from pyodide_pack.config import PackConfig, _find_pyproject_toml, _get_config_section
 from pyodide_pack.runners.node import NodeRunner
 from pyodide_pack.runtime_detection import PackageBundler, RuntimeResults
 
@@ -24,11 +26,13 @@ ROOT_DIR = Path(__file__).parents[1]
 
 def main(
     example_path: Path,
-    requirement_path: Path = typer.Option(
-        None, "-r", help="Path to the requirements.txt file"
-    ),
     verbose: bool = typer.Option(
         False, "-v", help="Increase verbosity (currently ignored)"
+    ),
+    config_path: Path = typer.Option(
+        None,
+        "--config",
+        help="Path to the pyproject.toml with the tool.pyodide_pack section",
     ),
     include_paths: str = typer.Option(
         None,
@@ -51,25 +55,49 @@ def main(
         f"Running [bold]pyodide pack[/bold] on [bold]{example_path}[/bold] in Node.js"
     )
 
-    if requirement_path is None:
-        requirement_path = example_path.parent / "requirements.txt"
-        if not requirement_path.exists():
+    if config_path is not None:
+        if not config_path.exists():
+            console.print(f"config {config_path} does not exist")
+            sys.exit(1)
+        config_data = _get_config_section(config_path)
+        if config_data is None:
             console.print(
-                f"Error: could not find requirements.txt in {example_path.parent}"
+                f"could not find the [tool.pyodide_pack] section in " f"{config_path}"
             )
             sys.exit(1)
+        config = parse_obj_as(PackConfig, config_data)
+    else:
+        config_path = _find_pyproject_toml(example_path.parent)
+        if config_path is None:
+            console.print(
+                "Could not find pyproject.toml, falling back to "
+                "defaults modified by CLI arguments"
+            )
+            config = PackConfig()
+        else:
+            config_data = _get_config_section(config_path)
+            if config_data is None:
+                console.print(
+                    "Could not find [tool.pyodide_pack] section in"
+                    f"{config_path}, falling back to "
+                    "defaults modified by CLI arguments"
+                )
+                config = PackConfig()
+            else:
+                config = parse_obj_as(PackConfig, config_data)
+                console.print(f"Loaded config from {config_path}")
+    if include_paths is not None:
+        config.include_paths = include_paths.split(",")
 
     console.print(
         "\n[bold]Note:[/bold] unless otherwise specified all sizes are given "
         "for gzip compressed files to be representative of CDN compression.\n"
     )
-    requirements = requirement_path.read_text().splitlines()
-    console.print(f"Loaded requirements from: {requirement_path}")
     code = example_path.read_text()
 
     js_template_path = ROOT_DIR / "pyodide_pack" / "js" / "discovery.js"
     js_template_kwargs = dict(
-        code=code, packages=requirements, output_path="results.json"
+        code=code, packages=config.requires, output_path="results.json"
     )
     with NodeRunner(js_template_path, ROOT_DIR, **js_template_kwargs) as runner:
         t0 = perf_counter()
@@ -121,13 +149,27 @@ def main(
     table.add_column("Reduction", justify="right")
 
     dynamic_libs = []
-    with zipfile.ZipFile(
-        out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
-    ) as fh_out, Live(table) as live:
-        imported_paths = db.get_imported_paths(strip_prefix=db.stdlib_prefix)
-        stdlib_archive_stripped = stdlib_archive.filter_to_zip(
-            stdlib_stripped_path, func=lambda name: name in imported_paths
-        )
+    with Live(table) as live:
+        with zipfile.ZipFile(
+            stdlib_stripped_path, "w", compression=zipfile.ZIP_DEFLATED
+        ) as fh_out:
+            imported_paths = db.get_imported_paths(strip_prefix=db.stdlib_prefix)
+            in_file_names = sorted(stdlib_archive.namelist())
+            bundler = PackageBundler(db, config=config)
+            for in_file_name in in_file_names:
+                if in_file_name not in imported_paths:
+                    continue
+                in_stream = stdlib_archive.read(in_file_name)
+                if in_stream is None:
+                    continue
+                out_stream = bundler.process_content(in_file_name, in_stream)
+                if out_stream is None:
+                    continue
+                # File paths starting with / fails to get correctly extracted
+                # in extract_archive in Pyodide
+                with fh_out.open(in_file_name.lstrip("/"), "w") as fh:
+                    fh.write(out_stream)
+        stdlib_archive_stripped = ArchiveFile(stdlib_stripped_path, name="stdlib")
 
         msg_0 = "0"
         msg_1 = "stdlib"
@@ -140,38 +182,51 @@ def main(
         msg_5 = f"{100*(1 - stdlib_archive_stripped.total_size(compressed=True) / stdlib_archive.total_size(compressed=True)):.1f} %"
         table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5)
         live.refresh()
-        for idx, ar in enumerate(sorted(packages.values(), key=lambda x: x.name)):
-            # Sort keys for reproducibility
-            in_file_names = sorted(ar.namelist())
+        with zipfile.ZipFile(
+            out_bundle_path, "w", compression=zipfile.ZIP_DEFLATED
+        ) as fh_out:
+            for idx, ar in enumerate(sorted(packages.values(), key=lambda x: x.name)):
+                # Sort keys for reproducibility
+                in_file_names = sorted(ar.namelist())
 
-            bundler = PackageBundler(db)
-            for in_file_name in in_file_names:
-                out_file_name = bundler.process_path(in_file_name)
+                bundler = PackageBundler(db, config=config)
+                for in_file_name in in_file_names:
+                    out_file_name = bundler.process_path(in_file_name)
+                    if out_file_name is None:
+                        continue
+                    in_stream = ar.read(in_file_name)
+                    if in_stream is None:
+                        continue
+                    out_stream = bundler.process_content(in_file_name, in_stream)
+                    if out_stream is None:
+                        continue
+                    # File paths starting with / fails to get correctly extracted
+                    # in extract_archive in Pyodide
+                    with fh_out.open(out_file_name.lstrip("/"), "w") as fh:
+                        fh.write(out_stream)
 
-                if out_file_name is not None:
-                    bundler.copy_between_zip_files(
-                        in_file_name, out_file_name, ar, fh_out
-                    )
-            dynamic_libs.extend(bundler.dynamic_libs)
+                dynamic_libs.extend(bundler.dynamic_libs)
 
-            stats = bundler.stats
+                stats = bundler.stats
 
-            msg_0 = f"{idx+1}"
-            msg_1 = ar.file_path.name
-            msg_2 = f"{len(in_file_names)} [red]→[/red] {stats['fh_out']}"
-            msg_3 = f"{stats['so_in']} [red]→[/red] {stats['so_out']}"
-            msg_4 = f"{ar.total_size(compressed=True) / 1e6:.2f} [red]→[/red] {stats['size_gzip_out']/1e6:.2f}"
-            msg_5 = f"{100*(1 - stats['size_gzip_out'] / ar.total_size(compressed=True)):.1f} %"
-            table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5)
-            live.refresh()
+                msg_0 = f"{idx+1}"
+                msg_1 = ar.file_path.name
+                msg_2 = f"{len(in_file_names)} [red]→[/red] {stats['fh_out']}"
+                msg_3 = f"{stats['so_in']} [red]→[/red] {stats['so_out']}"
+                msg_4 = f"{ar.total_size(compressed=True) / 1e6:.2f} [red]→[/red] {stats['size_gzip_out']/1e6:.2f}"
+                msg_5 = f"{100*(1 - stats['size_gzip_out'] / ar.total_size(compressed=True)):.1f} %"
+                table.add_row(msg_0, msg_1, msg_2, msg_3, msg_4, msg_5)
+                live.refresh()
 
-        # Write the list of .so libraries to pre-load
-        with fh_out.open("bundle-so-list.txt", "w") as fh:
-            for so in sorted(dynamic_libs):
-                fh.write(f"{so.path},{so.shared}\n".encode())
-        with fh_out.open("home/pyodide/pyodide_pack_loader.py", "w") as fh:
-            loader_path = Path(__file__).parent / "loader" / "pyodide_pack_loader.py"
-            fh.write(loader_path.read_text().encode("utf-8"))
+            # Write the list of .so libraries to pre-load
+            with fh_out.open("bundle-so-list.txt", "w") as fh:
+                for so in sorted(dynamic_libs):
+                    fh.write(f"{so.path},{so.shared}\n".encode())
+            with fh_out.open("home/pyodide/pyodide_pack_loader.py", "w") as fh:
+                loader_path = (
+                    Path(__file__).parent / "loader" / "pyodide_pack_loader.py"
+                )
+                fh.write(loader_path.read_text().encode("utf-8"))
 
     out_bundle_size = out_bundle_path.stat().st_size
     if packages_size_gzip:

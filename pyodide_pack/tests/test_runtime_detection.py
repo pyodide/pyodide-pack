@@ -1,5 +1,6 @@
 import json
 
+from pyodide_pack.config import PackConfig
 from pyodide_pack.dynamic_lib import DynamicLib
 from pyodide_pack.runtime_detection import PackageBundler, RuntimeResults
 
@@ -42,7 +43,7 @@ def test_bundler_process_path(tmp_path):
             "d/f.so": DynamicLib(path="d/f.so", load_order=0, shared=False)
         },
     )
-    bundler = PackageBundler(db)
+    bundler = PackageBundler(db, config=PackConfig())
 
     assert bundler.process_path("k.py") is None
     assert bundler.process_path("a.py") == "a.py"
