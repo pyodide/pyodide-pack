@@ -11,9 +11,12 @@ def main():
     fd_to_keep = [el for el in fd_to_keep if el.startswith(site_packages_prefix)]
     fd_to_keep = [el.replace(site_packages_prefix, "") for el in fd_to_keep]
 
-    with zipfile.ZipFile(
-        WHEELS_DIR / "numpy-1.22.3-cp310-cp310-emscripten_wasm32.whl", "r"
-    ) as zin, zipfile.ZipFile("/tmp/out.whl", "w") as zout:
+    with (
+        zipfile.ZipFile(
+            WHEELS_DIR / "numpy-1.22.3-cp310-cp310-emscripten_wasm32.whl", "r"
+        ) as zin,
+        zipfile.ZipFile("/tmp/out.whl", "w") as zout,
+    ):
         for item in zin.infolist():
             buff = zin.read(item.filename)
             keep = False
