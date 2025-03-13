@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Extra
+from pydantic import BaseModel, ConfigDict
 
 try:
     import tomllib
@@ -39,22 +39,28 @@ def _get_config_section(path: Path) -> dict[str, Any] | None:
     return None
 
 
-class PyPackConfig(BaseModel, extra=Extra.forbid):  # type: ignore[call-arg]
+class PyPackConfig(BaseModel):
     """Configuration for handling Python files"""
+
+    model_config = ConfigDict(extra="forbid")
 
     strip_module_docstrings: bool = True
     strip_docstrings: bool = True
     py_compile: bool = False
 
 
-class SoPackConfig(BaseModel, extra=Extra.forbid):  # type: ignore[call-arg]
+class SoPackConfig(BaseModel):
     """Configuration for handling shared libraries"""
+
+    model_config = ConfigDict(extra="forbid")
 
     drop_unused_so: bool = True
 
 
-class PackConfig(BaseModel, extra=Extra.forbid):  # type: ignore[call-arg]
+class PackConfig(BaseModel):
     """pyodide-pack configuration"""
+
+    model_config = ConfigDict(extra="forbid")
 
     requires: list[str] = []
     include_paths: list[str] = []
