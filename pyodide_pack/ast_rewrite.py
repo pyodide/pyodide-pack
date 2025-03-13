@@ -93,13 +93,14 @@ def main(
     input_dir: Path = typer.Argument(..., help="Path to the folder to compress"),
     strip_docstrings: bool = typer.Option(False, help="Strip docstrings"),
     strip_module_docstrings: bool = typer.Option(
-        False, help="Strip module lebel docstrings"
+        False, help="Strip module level docstrings"
     ),
     # py_compile: bool = typer.Option(False, help="py-compile files")
 ) -> None:
     """Minify a folder of Python files.
 
-    Note: this API will change before the next release
+    Note: this API will change before the next release.
+
     """
     output_dirname = input_dir.name + "_stripped"
     py_config = PyPackConfig(
