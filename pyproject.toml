@@ -74,7 +74,7 @@ testpaths = [
 ]
 
 [tool.ruff]
-select = [
+lint.select = [
   "B904",   # bugbear (Within an except clause, raise exceptions with raise ... from err)
   "B905",   # bugbear (zip() without an explicit strict= parameter set.)
 #  "C9",     # mccabe complexity
@@ -86,5 +86,5 @@ select = [
   "PLE",    # pylint errors
   "UP",     # pyupgrade
 ]
-ignore = ["E402", "E501", "E731", "E741"]
+lint.ignore = ["E402", "E501", "E731", "E741"]
 target-version = "py310"
