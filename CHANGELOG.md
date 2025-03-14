@@ -12,8 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
    `pyproject.toml` files
    [#35](https://github.com/pyodide/pyodide-pack/pull/35)
 
-
- - Add `pyidide minify` command to minify the Python packages with AST rewrites by,
+ - Add `pyodide minify` command to minify the Python packages with AST rewrites by,
    removing comments and docstrings
    [#23](https://github.com/pyodide/pyodide-pack/pull/23)
 
