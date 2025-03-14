@@ -30,8 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
- - Added support for Pyodide 0.24.0. This is now the minimal supported version of Pyodide.
-   [#26](https://github.com/pyodide/pyodide-pack/pull/26)
+ - Added support for Pyodide 0.27.3. This is now the minimal supported version of Pyodide.
+   [#57](https://github.com/pyodide/pyodide-pack/pull/57)
 
 ## Fixed
 
