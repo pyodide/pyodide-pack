@@ -41,7 +41,7 @@ jobs:
           node-version: "20"
 
       - name: Install the pyodide npm package
-        run: npm install pyodide@0.26.4
+        run: npm install pyodide@0.25.1
 
       - name: Test package + examples
         run: |
