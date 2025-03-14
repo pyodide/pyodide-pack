@@ -1,6 +1,3 @@
-from importlib.metadata import PackageNotFoundError, version
+from importlib.metadata import version
 
-try:
-    __version__ = version("pyodide-bundler")
-except PackageNotFoundError:
-    pass
+__version__ = version("pyodide_pack")

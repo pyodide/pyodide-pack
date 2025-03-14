@@ -8,3 +8,6 @@ _build/
 dist/
 .hypothesis
 build/
+venv
+.venv
+.DS_Store

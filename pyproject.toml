@@ -1,6 +1,9 @@
 [build-system]
-requires = ["setuptools>=61.2", "setuptools_scm>=6.2"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
 
 [project]
 name = "pyodide-pack"
@@ -25,11 +28,11 @@ file = "README.md"
 content-type = "text/markdown"
 
 [project.urls]
-Homepage = "https://github.com/rth/pyodide-bundler"
-"Bug Tracker" = "https://github.com/rth/pyodide-bundler"
+Homepage = "https://github.com/pyodide/pyodide-pack/"
+"Bug Tracker" = "https://github.com/pyodide-pack/pyodide-pack/"
+Documentation = "https://pyodide-pack.pyodide.org/"
 
 [project.entry-points."pyodide.cli"]
-
 pack = "pyodide_pack.cli:main"
 minify = "pyodide_pack.ast_rewrite:main"
 
@@ -41,17 +44,6 @@ dev = [
     "hypothesis",
     "tomli-w"
 ]
-
-[tool.setuptools]
-package-dir = {"" = "."}
-include-package-data = false
-
-[tool.setuptools.packages.find]
-where = ["."]
-namespaces = false
-
-
-[tool.setuptools_scm]
 
 [tool.isort]
 profile = "black"
