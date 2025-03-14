@@ -23,9 +23,9 @@ class RuntimeResults(dict):
 
         Examples
         --------
-        >>> db = RuntimeResults(sys_modules={"pathlib": "/lib/python311.zip/pathlib.py"})
+        >>> db = RuntimeResults(sys_modules={"pathlib": "/lib/python312.zip/pathlib.py"})
         >>> db.stdlib_prefix
-        '/lib/python311.zip'
+        '/lib/python312.zip'
         """
         return self["sys_modules"]["pathlib"].replace("/pathlib.py", "")
 
@@ -37,12 +37,12 @@ class RuntimeResults(dict):
         Examples
         --------
         >>> db = RuntimeResults(sys_modules={
-        ...         "pathlib": "/lib/python311.zip/pathlib.py",
-        ...         "os": "/lib/python311.zip/os.py"},
-        ...     opened_file_names=["/lib/python311.zip/pathlib.py"])
+        ...         "pathlib": "/lib/python312.zip/pathlib.py",
+        ...         "os": "/lib/python312.zip/os.py"},
+        ...     opened_file_names=["/lib/python312.zip/pathlib.py"])
         >>> db.get_imported_paths()
-        ['/lib/python311.zip/pathlib.py', '/lib/python311.zip/os.py']
-        >>> db.get_imported_paths(strip_prefix="/lib/python311.zip")
+        ['/lib/python312.zip/pathlib.py', '/lib/python312.zip/os.py']
+        >>> db.get_imported_paths(strip_prefix="/lib/python312.zip")
         ['pathlib.py', 'os.py']
         """
         imported_paths = list(self["sys_modules"].values()) + self["opened_file_names"]
@@ -141,7 +141,7 @@ class PackageBundler:
             for pattern in self.config.include_paths
         ):
             # TODO: this is hack and should be done better
-            out_file_name = os.path.join("/lib/python3.11/site-utils", in_file_name)
+            out_file_name = os.path.join("/lib/python3.12/site-utils", in_file_name)
             match extension:
                 case ".py":
                     stats["py_out"] += 1
