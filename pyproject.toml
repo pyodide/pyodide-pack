@@ -57,6 +57,7 @@ doctest_optionflags = [
   "ELLIPSIS",
 ]
 addopts = [
+  "-svra",
    "--doctest-modules",
 ]
 testpaths = [
