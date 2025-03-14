@@ -54,7 +54,7 @@ def _strip_module_docstring(tree: ast.Module) -> ast.Module:
     if (
         tree.body
         and isinstance(expr := tree.body[0], ast.Expr)
-        and isinstance(expr.value, ast.Str | ast.Constant)
+        and isinstance(expr.value, ast.Constant)
         and isinstance(expr.value.value, str)
     ):
         tree.body.pop(0)
