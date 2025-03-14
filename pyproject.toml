@@ -28,8 +28,9 @@ file = "README.md"
 content-type = "text/markdown"
 
 [project.urls]
-Homepage = "https://github.com/rth/pyodide-bundler"
-"Bug Tracker" = "https://github.com/rth/pyodide-bundler"
+Homepage = "https://github.com/pyodide/pyodide-pack/"
+"Bug Tracker" = "https://github.com/pyodide-pack/pyodide-pack/"
+Documentation = "https://pyodide-pack.pyodide.org/"
 
 [project.entry-points."pyodide.cli"]
 pack = "pyodide_pack.cli:main"
