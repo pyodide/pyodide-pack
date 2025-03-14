@@ -19,7 +19,6 @@ dependencies = [
     "jinja2",
     "pyodide-cli>=0.2.0",
     "pyodide-lock",
-    "tomli; python_version < '3.11'"
 ]
 dynamic = ["version"]
 
