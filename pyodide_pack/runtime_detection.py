@@ -126,21 +126,12 @@ class PackageBundler:
             stats["so_out"] += 1
             # Get the dynamic library path while preserving order
             dll = db["dynamic_libs_map"][out_file_name]
-            # Always mark shared libraries as shared=True to ensure they're loaded
-            # globally, for libraries that need these global symbols
-            if extension == ".so":
-                dll.shared = True
             self.dynamic_libs.append(dll)
 
         elif out_file_name := match_suffix(db["opened_file_names"], in_file_name):
             match extension:
                 case ".so":
-                    # Always include shared libraries that were opened
-                    # and add dynamic library with medium priority to
-                    # ensure it's loaded globally
-                    stats["so_out"] += 1
-                    dll = DynamicLib(out_file_name, load_order=500, shared=True)
-                    self.dynamic_libs.append(dll)
+                    out_file_name = None
                 case ".py":
                     stats["py_out"] += 1
                 case _:
@@ -159,7 +150,7 @@ class PackageBundler:
                     stats["so_out"] += 1
                     # Manually included dynamic libraries are going to be loaded first
                     # and should also be loaded globally
-                    dll = DynamicLib(out_file_name, load_order=-1000, shared=True)
+                    dll = DynamicLib(out_file_name, load_order=-1000)
                     self.dynamic_libs.append(dll)
         return out_file_name
 
