@@ -1,0 +1,5 @@
+[tool.pyodide_pack]
+requires = [
+    "numpy",
+    "netcdf4",
+]
