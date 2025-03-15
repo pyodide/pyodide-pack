@@ -15,7 +15,7 @@ Each of these approaches have different tradeoffs, and can be used separately or
 
 ## Install
 
-Pyodide-pack requires Python 3.10+ and can be installed via pip:
+`pyodide-pack` requires Python >=3.12 and can be installed via `pip`:
 
 ```
 pip install pyodide-pack
