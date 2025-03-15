@@ -1,15 +1,10 @@
 from __future__ import annotations
 
+import tomllib
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict
-
-try:
-    import tomllib
-except ImportError:
-    # Python <3.11
-    import tomli as tomllib  # type: ignore[no-redef]
 
 
 def _find_pyproject_toml(input_path: Path) -> Path | None:

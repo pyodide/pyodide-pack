@@ -23,9 +23,9 @@ class RuntimeResults(dict):
 
         Examples
         --------
-        >>> db = RuntimeResults(sys_modules={"pathlib": "/lib/python311.zip/pathlib.py"})
+        >>> db = RuntimeResults(sys_modules={"pathlib": "/lib/python312.zip/pathlib.py"})
         >>> db.stdlib_prefix
-        '/lib/python311.zip'
+        '/lib/python312.zip'
         """
         return self["sys_modules"]["pathlib"].replace("/pathlib.py", "")
 
@@ -37,12 +37,12 @@ class RuntimeResults(dict):
         Examples
         --------
         >>> db = RuntimeResults(sys_modules={
-        ...         "pathlib": "/lib/python311.zip/pathlib.py",
-        ...         "os": "/lib/python311.zip/os.py"},
-        ...     opened_file_names=["/lib/python311.zip/pathlib.py"])
+        ...         "pathlib": "/lib/python312.zip/pathlib.py",
+        ...         "os": "/lib/python312.zip/os.py"},
+        ...     opened_file_names=["/lib/python312.zip/pathlib.py"])
         >>> db.get_imported_paths()
-        ['/lib/python311.zip/pathlib.py', '/lib/python311.zip/os.py']
-        >>> db.get_imported_paths(strip_prefix="/lib/python311.zip")
+        ['/lib/python312.zip/pathlib.py', '/lib/python312.zip/os.py']
+        >>> db.get_imported_paths(strip_prefix="/lib/python312.zip")
         ['pathlib.py', 'os.py']
         """
         imported_paths = list(self["sys_modules"].values()) + self["opened_file_names"]
@@ -73,10 +73,11 @@ class RuntimeResults(dict):
                 obj["path"], shared=obj.get("global", False), load_order=idx
             )
             for idx, obj in enumerate(db["load_dyn_lib_calls"])
-            # Include locally loaded .so by they shared symbols
-            # or if they are globally loaded
+            # Include ALL .so libraries regardless of whether they're loaded
+            # globally or accessed by symbols - this ensures compatibility with
+            # Pyodide 0.27+ where libraries are being loaded locally by default.
+            # For more info, see: https://github.com/pyodide/pyodide/pull/4876
             if obj["path"].endswith(".so")
-            and ((obj["path"] in db["dl_accessed_symbols"]) or obj["global"])
         }
         return db
 
@@ -125,12 +126,21 @@ class PackageBundler:
             stats["so_out"] += 1
             # Get the dynamic library path while preserving order
             dll = db["dynamic_libs_map"][out_file_name]
+            # Always mark shared libraries as shared=True to ensure they're loaded
+            # globally, for libraries that need these global symbols
+            if extension == ".so":
+                dll.shared = True
             self.dynamic_libs.append(dll)
 
         elif out_file_name := match_suffix(db["opened_file_names"], in_file_name):
             match extension:
                 case ".so":
-                    out_file_name = None
+                    # Always include shared libraries that were opened
+                    # and add dynamic library with medium priority to
+                    # ensure it's loaded globally
+                    stats["so_out"] += 1
+                    dll = DynamicLib(out_file_name, load_order=500, shared=True)
+                    self.dynamic_libs.append(dll)
                 case ".py":
                     stats["py_out"] += 1
                 case _:
@@ -141,14 +151,15 @@ class PackageBundler:
             for pattern in self.config.include_paths
         ):
             # TODO: this is hack and should be done better
-            out_file_name = os.path.join("/lib/python3.11/site-utils", in_file_name)
+            out_file_name = os.path.join("/lib/python3.12/site-utils", in_file_name)
             match extension:
                 case ".py":
                     stats["py_out"] += 1
                 case ".so":
                     stats["so_out"] += 1
                     # Manually included dynamic libraries are going to be loaded first
-                    dll = DynamicLib(out_file_name, load_order=-1000)
+                    # and should also be loaded globally
+                    dll = DynamicLib(out_file_name, load_order=-1000, shared=True)
                     self.dynamic_libs.append(dll)
         return out_file_name
 
