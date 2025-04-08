@@ -28,10 +28,9 @@ def test_runtime_results(tmp_path):
     ]
 
     assert res["opened_file_names"] == ["a.py", "b.py"]
-    # d.so not included as it's not in accessed LDSO symbols
-    # g.so is include as it's globally loaded
     assert res["dynamic_libs_map"] == {
         "c.so": DynamicLib(path="c.so", load_order=0, shared=False),
+        "d.so": DynamicLib(path="d.so", load_order=1, shared=False),
         "g.so": DynamicLib(path="g.so", load_order=2, shared=True),
     }
 
