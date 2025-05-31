@@ -21,10 +21,11 @@ Each of these approaches have different tradeoffs, and can be used separately or
 pip install pyodide-pack
 ```
 
-(optionally) For elimation of unused modules via runtime detection, run Node.js, needs to be installed together with Pyodide 0.27.3 and later:
+(optionally) For elimation of unused modules via runtime detection, run Node.js, needs to be installed together with Pyodide 0.28.0a3 and later:
 
+<!-- TODO update this to stable when ready -->
 ```bash
-npm install pyodide@">=0.27.3"
+npm install pyodide@">=0.28.0a3"
 ```
 
 ## Usage
