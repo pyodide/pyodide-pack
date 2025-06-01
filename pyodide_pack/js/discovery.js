@@ -99,7 +99,11 @@ async function main() {
 	await micropip.install({{packages}});
   }
 
+  // Explicitly import the cp437 encoding to ensure it's included in the bundle.
+  // It's required for zipfiles to work as decoding can rely on it, see:
+  // https://github.com/python/cpython/blob/0b05ead877f909b7efe712db758012d9dbece7ce/Lib/zipfile/__init__.py#L1457
   await pyodide.runPythonAsync(`
+import encodings.cp437
 {{ code }}
 `);
   // Run code used in the loader
