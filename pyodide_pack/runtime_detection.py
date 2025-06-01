@@ -142,7 +142,7 @@ class PackageBundler:
             for pattern in self.config.include_paths
         ):
             # TODO: this is hack and should be done better
-            out_file_name = os.path.join("/lib/python3.12/site-utils", in_file_name)
+            out_file_name = os.path.join("/lib/python3.13/site-utils", in_file_name)
             match extension:
                 case ".py":
                     stats["py_out"] += 1
