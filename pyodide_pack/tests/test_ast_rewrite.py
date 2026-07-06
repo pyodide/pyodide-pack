@@ -20,14 +20,9 @@ def test_strip_docstrings_function():
         '''
     tree = ast.parse(dedent(src_code))
     tree = _StripDocstringsTransformer().visit(tree)
-    assert (
-        ast.unparse(tree)
-        == dedent(
-            """
+    assert ast.unparse(tree) == dedent("""
         def foo():
-            return 1"""
-        ).strip("\n")
-    )
+            return 1""").strip("\n")
 
 
 def test_strip_docstrings_nested_functions():
@@ -41,18 +36,13 @@ def test_strip_docstrings_nested_functions():
         '''
     tree = ast.parse(dedent(src_code))
     tree = _StripDocstringsTransformer().visit(tree)
-    assert (
-        ast.unparse(tree)
-        == dedent(
-            """
+    assert ast.unparse(tree) == dedent("""
         def foo():
 
             def bar():
                 return 2
             return bar
-        """
-        ).strip("\n")
-    )
+        """).strip("\n")
 
 
 def test_strip_docstrings_class():
@@ -72,10 +62,7 @@ def test_strip_docstrings_class():
         '''
     tree = ast.parse(dedent(src_code))
     tree = _StripDocstringsTransformer().visit(tree)
-    assert (
-        ast.unparse(tree)
-        == dedent(
-            """
+    assert ast.unparse(tree) == dedent("""
         class A:
 
             def foo(self):
@@ -83,9 +70,7 @@ def test_strip_docstrings_class():
 
             def bar(self):
                 return 1
-        """
-        ).strip("\n")
-    )
+        """).strip("\n")
 
 
 def test_strip_docstrings_empty_function():
@@ -95,15 +80,10 @@ def test_strip_docstrings_empty_function():
         '''
     tree = ast.parse(dedent(src_code))
     tree = _StripDocstringsTransformer().visit(tree)
-    assert (
-        ast.unparse(tree)
-        == dedent(
-            """
+    assert ast.unparse(tree) == dedent("""
         def foo():
             pass
-        """
-        ).strip("\n")
-    )
+        """).strip("\n")
 
 
 def test_strip_module_docstrings():
@@ -113,14 +93,9 @@ def test_strip_module_docstrings():
         '''
     tree = ast.parse(dedent(src_code))
     tree = _strip_module_docstring(tree)
-    assert (
-        ast.unparse(tree)
-        == dedent(
-            """
+    assert ast.unparse(tree) == dedent("""
         a = 1
-        """
-        ).strip("\n")
-    )
+        """).strip("\n")
 
 
 @settings(deadline=300)
