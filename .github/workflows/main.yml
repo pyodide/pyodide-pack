@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  FORCE_COLOR: 3
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -20,10 +23,10 @@ jobs:
           fetch-tags: true
           persist-credentials: false
 
-      - name: Set up Python 3.10
+      - name: Set up Python 3.13
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5.4.0
         with:
-          python-version: "3.10"
+          python-version: "3.13"
 
       - name: Install dependencies
         run: |
@@ -35,15 +38,14 @@ jobs:
 
       - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
-          node-version: "20.6.1"
+          node-version: "22"
 
       - name: Install the pyodide npm package
-        run: |
-          npm install pyodide@0.24.1
+        run: npm install pyodide@0.28.0-alpha.3
 
       - name: Test package + examples
         run: |
-          pytest --cov=pyodide_pack -n 2 --cov-report=xml
+          pytest --cov=pyodide_pack -n auto --cov-report=xml
 
       - name: Upload coverage
         uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # v5.4.0

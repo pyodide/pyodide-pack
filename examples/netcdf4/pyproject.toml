@@ -1,4 +1,5 @@
 [tool.pyodide_pack]
 requires = [
-    "scikit-learn"
+    "numpy",
+    "netcdf4",
 ]
